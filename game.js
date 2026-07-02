@@ -394,18 +394,21 @@
   function completeLineClear() {
     if (!flashing) return;
     const { rows, tspin } = flashing;
-    rows.sort((a, b) => a - b);
-    for (let i = rows.length - 1; i >= 0; i--) {
-      const r = rows[i];
-      if (settings.display.particles) {
+    if (settings.display.particles) {
+      for (const r of rows) {
         for (let c = 0; c < COLS; c++) {
           const type = grid[r][c];
           if (type) emitClearParticles(c, r, type);
         }
       }
-      grid.splice(r, 1);
-      grid.unshift(Array(COLS).fill(null));
     }
+    // Remove all cleared rows at once, then pad the top with empty rows.
+    // Doing this row-by-row with splice+unshift breaks for non-contiguous
+    // clears because the unshift shifts remaining target indices.
+    const rowSet = new Set(rows);
+    const kept = grid.filter((_, r) => !rowSet.has(r));
+    while (kept.length < ROWS) kept.unshift(Array(COLS).fill(null));
+    for (let r = 0; r < ROWS; r++) grid[r] = kept[r];
     applyScoreAndFx(rows.length, tspin);
     if (rows.length === 4 && settings.display.shake) shake(12);
     flashing = null;
@@ -1154,7 +1157,11 @@
       return;
     }
     if (modalOpen) {
-      if (e.code === 'Escape') { e.preventDefault(); closeModal(); }
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        if (padRebinding) stopPadRebind();
+        else closeModal();
+      }
       return;
     }
     if (appState === 'menu') {
@@ -1543,6 +1550,8 @@
     modalOpen = true;
     buildBindingRows();
     refreshBindingButtons();
+    buildPadBindingRows();
+    refreshPadBindingButtons();
     syncSlidersFromSettings();
     syncTogglesFromSettings();
     modal.classList.remove('hidden');
@@ -1552,6 +1561,7 @@
   function closeModal() {
     if (!modalOpen) return;
     stopRebind();
+    stopPadRebind();
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
     modalOpen = false;
@@ -1565,6 +1575,8 @@
     saveSettings();
     buildBindingRows();
     refreshBindingButtons();
+    buildPadBindingRows();
+    refreshPadBindingButtons();
     syncSlidersFromSettings();
     syncTogglesFromSettings();
     recalcDropInterval();
