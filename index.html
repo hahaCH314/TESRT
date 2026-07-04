@@ -52,10 +52,10 @@
                 <circle cx="30" cy="5" r="3" class="ant-tip"/>
               </svg>
             </div>
-            <div class="card-name">CPU</div>
-            <div class="card-tag">AUTO PLAY</div>
-            <div class="card-desc">AI が最適な位置を<br>探索して自動プレイ。<br>速度も調整可能。</div>
-            <div class="card-cta">WATCH</div>
+            <div class="card-name">VS CPU</div>
+            <div class="card-tag">BATTLE</div>
+            <div class="card-desc">左右2つの盤面で対戦。<br>ラインを消して<br>お邪魔を送り込め。</div>
+            <div class="card-cta">FIGHT</div>
           </button>
 
           <button class="mode-card" data-mode="infinity">
@@ -109,6 +109,10 @@
           <div class="mini-label">POINTS</div>
           <div id="points" class="mini-value">x1</div>
         </div>
+        <div class="panel mini-panel vs-only">
+          <div class="mini-label">GARBAGE</div>
+          <div id="garbage" class="mini-value">0</div>
+        </div>
       </div>
 
       <div class="board-wrap">
@@ -146,6 +150,55 @@
         <div class="panel digi-panel">
           <div class="mini-label">SCORE</div>
           <div id="score" class="digi digi-amber">0000</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPU FRAME (only visible in VS mode) -->
+    <div class="game-frame cpu-frame hidden" id="cpuFrame">
+      <div class="col col-left">
+        <div class="panel next-panel">
+          <div class="panel-label">NEXT</div>
+          <canvas id="next2" width="96" height="240"></canvas>
+        </div>
+        <div class="spacer"></div>
+        <div class="panel digi-panel">
+          <div class="mini-label">LINE</div>
+          <div id="lines2" class="digi">000</div>
+        </div>
+        <div class="panel digi-panel">
+          <div class="mini-label">SCORE</div>
+          <div id="score2" class="digi digi-amber">0000</div>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board-border">
+          <canvas id="board2" width="300" height="600"></canvas>
+        </div>
+        <div class="mode-badge mode-cpu" id="modeBadge2">CPU</div>
+        <div id="popupLayer2" class="popup-layer"></div>
+        <div id="overlay2" class="overlay hidden">
+          <div class="overlay-inner">
+            <h2 id="overlay2-title">READY</h2>
+            <p id="overlay2-sub"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col col-right">
+        <div class="panel hold-panel">
+          <div class="panel-label">HOLD</div>
+          <canvas id="hold2" width="96" height="64"></canvas>
+        </div>
+        <div class="panel level-panel">
+          <div class="panel-label">LEVEL</div>
+          <div id="level2" class="digi digi-lg">1</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="panel mini-panel">
+          <div class="mini-label">GARBAGE</div>
+          <div id="garbage2" class="mini-value">0</div>
         </div>
       </div>
     </div>
@@ -205,10 +258,14 @@
 
           <section class="settings-section">
             <h3 class="section-title"><span class="section-bar"></span>CPU MODE</h3>
-            <div class="setting-row slider-row">
-              <div class="setting-label"><span class="setting-name">CPU SPEED</span><span class="setting-hint">思考→アクションの間隔</span></div>
-              <input type="range" id="cpuSpeedRange" min="10" max="400" step="10" class="range">
-              <span class="setting-value" id="cpuSpeedVal">80 ms</span>
+            <div class="setting-row diff-row">
+              <div class="setting-label"><span class="setting-name">DIFFICULTY</span><span class="setting-hint">CPUの強さ</span></div>
+              <div class="diff-buttons" id="diffButtons">
+                <button class="diff-btn" data-diff="easy">EASY</button>
+                <button class="diff-btn" data-diff="normal">NORMAL</button>
+                <button class="diff-btn" data-diff="hard">HARD</button>
+                <button class="diff-btn" data-diff="expert">EXPERT</button>
+              </div>
             </div>
             <div class="setting-row toggle-row">
               <div class="setting-label"><span class="setting-name">Auto Restart</span><span class="setting-hint">CPUが詰んだら自動リスタート</span></div>
