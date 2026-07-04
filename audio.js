@@ -25,7 +25,16 @@
       this.bgmTimer = null;
       this.bgmNextTime = 0;
       this.bgmNodes = [];
-      this.bgmTempo = 150; // BPM (8th-note base)
+      this.bgmTempo = 150;      // current BPM (interpolates toward target)
+      this.bgmBaseTempo = 150;  // resting BPM
+      this.bgmMaxTempo = 205;   // BPM at pinch = 1.0
+      this.pinchIntensity = 0;  // 0..1 — game.js sets this each frame
+    }
+
+    // Called from game.js: 0 = calm, 1 = about to top out.
+    // Tempo and EDM layer density both scale with this value.
+    setPinchIntensity(v) {
+      this.pinchIntensity = Math.max(0, Math.min(1, v || 0));
     }
 
     ensure() {
@@ -251,10 +260,16 @@
 
     _scheduleBGM() {
       if (!this.bgmActive || !this.ctx) return;
+
+      // Ease tempo toward the target (driven by pinchIntensity) at the top of
+      // every phrase. 60% previous + 40% new gives a noticeable but non-jarring
+      // step every ~12 seconds, so BPM feels like it's swelling under pressure.
+      const targetTempo = this.bgmBaseTempo + (this.bgmMaxTempo - this.bgmBaseTempo) * this.pinchIntensity;
+      this.bgmTempo = this.bgmTempo * 0.6 + targetTempo * 0.4;
       const N = 60 / this.bgmTempo / 2; // duration of one 8th note in seconds
+      const I = this.pinchIntensity;
 
       // Korobeiniki — 8 bars, each bar = 8 eighth notes
-      // Notes: [pitch|null, durationIn8ths]
       const MELODY = [
         ['E5',2],['B4',1],['C5',1],['D5',2],['C5',1],['B4',1],
         ['A4',2],['A4',1],['C5',1],['E5',2],['D5',1],['C5',1],
@@ -265,7 +280,6 @@
         ['B4',3],['C5',1],['D5',2],['E5',2],
         ['C5',2],['A4',2],['A4',2],[null,2],
       ];
-      // bass: 2 notes per bar (each lasts 4 eighths)
       const BASS = [
         ['E2',4],['B2',4],
         ['A2',4],['E2',4],
@@ -276,34 +290,71 @@
         ['G2',4],['B2',4],
         ['A2',4],['E2',4],
       ];
-      // simple kick on every quarter
       const KICK_PER_BAR = 4;
       const BARS = 8;
 
+      // Lead voice: pitch stays the same but tone gets sharper (sawtooth
+      // layer) as pinch rises so the melody bites through harder mixes.
       let t = this.bgmNextTime;
       const melodyStart = t;
       MELODY.forEach(([note, dur]) => {
-        if (note) this._scheduleNote(note, t, dur * N * 0.94, 'square', 0.18);
+        if (note) {
+          this._scheduleNote(note, t, dur * N * 0.94, 'square', 0.18);
+          if (I > 0.45) {
+            // Detuned sawtooth doubler — hardstyle-ish lead reinforcement
+            this._scheduleNote(note, t, dur * N * 0.90, 'sawtooth', 0.06 * I);
+          }
+        }
         t += dur * N;
       });
       const melodyEnd = t;
 
+      // Bass: triangle stays; add sawtooth sub layer when things get tense.
       let tb = melodyStart;
       BASS.forEach(([note, dur]) => {
-        if (note) this._scheduleNote(note, tb, dur * N * 0.92, 'triangle', 0.22);
+        if (note) {
+          this._scheduleNote(note, tb, dur * N * 0.92, 'triangle', 0.22);
+          if (I > 0.35) this._scheduleNote(note, tb, dur * N * 0.90, 'sawtooth', 0.08 + 0.10 * I);
+        }
         tb += dur * N;
       });
 
-      // soft kick drum
+      // Kick drum: always on every quarter; gains punch and adds offbeat
+      // "double kick" pattern under high pinch.
+      const kickVol = 0.22 + 0.15 * I;
       for (let bar = 0; bar < BARS; bar++) {
         for (let beat = 0; beat < KICK_PER_BAR; beat++) {
           const kt = melodyStart + (bar * 8 + beat * 2) * N;
-          this._scheduleKick(kt);
+          this._scheduleKick(kt, kickVol);
+        }
+        if (I > 0.75) {
+          // hardstyle-ish double kick on the offbeat 8ths
+          for (let beat = 0; beat < KICK_PER_BAR; beat++) {
+            const kt = melodyStart + (bar * 8 + beat * 2 + 1) * N;
+            this._scheduleKick(kt, kickVol * 0.7);
+          }
+        }
+      }
+
+      // Snare on the backbeats (2 and 4) once pinch crosses ~25%.
+      if (I > 0.25) {
+        for (let bar = 0; bar < BARS; bar++) {
+          this._scheduleSnare(melodyStart + (bar * 8 + 2) * N, I);
+          this._scheduleSnare(melodyStart + (bar * 8 + 6) * N, I);
+        }
+      }
+
+      // Hi-hat 8th notes past ~50% pinch.
+      if (I > 0.5) {
+        for (let bar = 0; bar < BARS; bar++) {
+          for (let s = 0; s < 8; s++) {
+            const ht = melodyStart + (bar * 8 + s) * N;
+            this._scheduleHat(ht, I, s % 2 === 1); // slight accent on offbeats
+          }
         }
       }
 
       this.bgmNextTime = melodyEnd;
-      // garbage-collect finished nodes
       const now = this.ctx.currentTime;
       this.bgmNodes = this.bgmNodes.filter(n => n.stopAt > now);
 
@@ -329,20 +380,68 @@
       this.bgmNodes.push({ osc, g, stopAt });
     }
 
-    _scheduleKick(time) {
+    _scheduleKick(time, vol = 0.22) {
       const osc = this.ctx.createOscillator();
       const g = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(140, time);
       osc.frequency.exponentialRampToValueAtTime(45, time + 0.08);
       g.gain.setValueAtTime(0.0, time);
-      g.gain.linearRampToValueAtTime(0.22, time + 0.004);
+      g.gain.linearRampToValueAtTime(vol, time + 0.004);
       g.gain.exponentialRampToValueAtTime(0.001, time + 0.10);
       osc.connect(g).connect(this.bgmGain);
       osc.start(time);
       const stopAt = time + 0.12;
       osc.stop(stopAt);
       this.bgmNodes.push({ osc, g, stopAt });
+    }
+
+    _scheduleSnare(time, intensity) {
+      const sr = this.ctx.sampleRate;
+      const dur = 0.09;
+      const buf = this.ctx.createBuffer(1, Math.floor(sr * dur), sr);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const env = Math.pow(1 - i / data.length, 2);
+        data[i] = (Math.random() * 2 - 1) * env;
+      }
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const bp = this.ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 2600;
+      bp.Q.value = 0.7;
+      const g = this.ctx.createGain();
+      const vol = 0.10 + 0.14 * intensity;
+      g.gain.setValueAtTime(vol, time);
+      g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+      src.connect(bp); bp.connect(g); g.connect(this.bgmGain);
+      src.start(time);
+      const stopAt = time + dur + 0.02;
+      this.bgmNodes.push({ osc: src, g, stopAt });
+    }
+
+    _scheduleHat(time, intensity, accent) {
+      const sr = this.ctx.sampleRate;
+      const dur = accent ? 0.045 : 0.028;
+      const buf = this.ctx.createBuffer(1, Math.floor(sr * dur), sr);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      }
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const hp = this.ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 7500;
+      const g = this.ctx.createGain();
+      const vol = (accent ? 0.055 : 0.035) * (0.6 + intensity);
+      g.gain.setValueAtTime(vol, time);
+      g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+      src.connect(hp); hp.connect(g); g.connect(this.bgmGain);
+      src.start(time);
+      const stopAt = time + dur + 0.02;
+      this.bgmNodes.push({ osc: src, g, stopAt });
     }
   }
 

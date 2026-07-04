@@ -1056,6 +1056,21 @@
   const bgPieces = [];
   let bgSpawnTimer = 0;
   let matchEnded = false;
+  // Pinch state — how close the player is to topping out (0..1).
+  // Smoothed toward the raw stack-height reading so BGM tempo/layers
+  // ramp up and down gradually instead of jumping on every lock.
+  let pinchSmoothed = 0;
+
+  function computePinchLevel(b) {
+    if (!b || !b.grid) return 0;
+    for (let r = 0; r < ROWS; r++) {
+      if (b.grid[r].some(cell => cell !== null)) {
+        // Top block at row 15 → 0. Row 3 or higher → 1.
+        return Math.max(0, Math.min(1, (15 - r) / 12));
+      }
+    }
+    return 0;
+  }
 
   // ---------- CONTROLS ----------
   function triggerAction(action) {
@@ -1520,6 +1535,9 @@
     paused = false;
     startTime = performance.now(); pausedTotal = 0; pauseStarted = 0;
     shakeAmount = 0;
+    hitStopUntil = 0;
+    pinchSmoothed = 0;
+    if (window.audio && window.audio.setPinchIntensity) window.audio.setPinchIntensity(0);
     gameFrame.style.transform = ''; if (cpuFrame) cpuFrame.style.transform = '';
     for (const k in held) delete held[k];
     fxLayer.innerHTML = '';
@@ -1585,6 +1603,13 @@
         }
         applyShake();
         updateTime(t);
+        // Feed pinch level to the audio engine. Slow lerp (~0.04) so the BGM
+        // swells over roughly a second — no jarring jumps on every lock.
+        if (!paused && !matchEnded) {
+          const target = (playerBoard.gameOver || !playerBoard.grid) ? 0 : computePinchLevel(playerBoard);
+          pinchSmoothed += (target - pinchSmoothed) * 0.04;
+          if (window.audio && window.audio.setPinchIntensity) window.audio.setPinchIntensity(pinchSmoothed);
+        }
       }
     } catch (e) {
       // Don't let a single-frame error freeze the whole loop
