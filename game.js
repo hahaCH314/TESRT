@@ -61,7 +61,7 @@
     },
     handling: { das:150, arr:40, sdf:20, gravity:1000, lockDelay:500 },
     audio: { bgm:true, se:true, bgmVolume:32, seVolume:55 },
-    display: { ghost:true, grid:true, glow:true, stars:true, particles:true, shake:true, popups:true, flash:true },
+    display: { ghost:true, grid:true, glow:true, stars:true, particles:true, shake:true, popups:true, flash:true, impact:true, vignette:true },
     cpu: { difficulty:'normal', autoRestart:true, showTarget:true },
     gamepadBindings: { moveLeft:14, moveRight:15, softDrop:13, hardDrop:5, rotateCW:0, rotateCCW:1, rotate180:3, hold:2, pause:9, reset:8 },
   };
@@ -452,6 +452,8 @@
         }
       }
     }
+    // 光の帯: each cleared row gets a horizontal beam.
+    if (!b.isCPU) { for (const r of rows) spawnLineBeam(b, r); }
     const rowSet = new Set(rows);
     const kept = b.grid.filter((_, r) => !rowSet.has(r));
     while (kept.length < ROWS) kept.unshift(Array(COLS).fill(null));
@@ -472,6 +474,13 @@
       if (!b.isCPU) {
         window.audio.playSE('tspin');
         if (settings.display.flash) triggerFlash('tspin');
+        // Impact FX: T-Spin gets stronger hit-stop and full board treatment.
+        hitStop(cleared > 0 ? 160 : 90);
+        pulseBoardWrap(b);
+        flashBoardWrap(b);
+        chromaBoardWrap(b);
+        boostVignette();
+        if (settings.display.shake) shake(cleared > 0 ? 10 + cleared * 2 : 6);
       }
     } else if (cleared > 0) {
       base = [0, 100, 300, 500, 800][cleared];
@@ -481,6 +490,19 @@
       if (!b.isCPU) {
         if (cleared === 4) { window.audio.playSE('tetris'); if (settings.display.flash) triggerFlash('tetris'); }
         else window.audio.playSE('line' + cleared);
+        // Impact FX escalation: bigger clears = stronger response
+        if (cleared === 4) {
+          hitStop(120); pulseBoardWrap(b); flashBoardWrap(b); chromaBoardWrap(b); boostVignette();
+          if (settings.display.shake) shake(14);
+        } else if (cleared === 3) {
+          hitStop(60); pulseBoardWrap(b); flashBoardWrap(b);
+          if (settings.display.shake) shake(8);
+        } else if (cleared === 2) {
+          pulseBoardWrap(b);
+          if (settings.display.shake) shake(5);
+        } else {
+          pulseBoardWrap(b);
+        }
       }
     }
     let b2bBonus = 0;
@@ -660,6 +682,7 @@
 
   // ---------- SHAKE / FX / POPUPS (global) ----------
   let shakeAmount = 0;
+  let hitStopUntil = 0;
   function shake(amt) { shakeAmount = Math.max(shakeAmount, amt); }
   function applyShake() {
     if (shakeAmount <= 0.3) { if (shakeAmount !== 0) { gameFrame.style.transform = ''; if (cpuFrame) cpuFrame.style.transform = ''; shakeAmount = 0; } return; }
@@ -668,12 +691,65 @@
     gameFrame.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
     shakeAmount *= 0.86;
   }
+  function hitStop(ms) {
+    if (!settings.display.impact) return;
+    hitStopUntil = Math.max(hitStopUntil, performance.now() + ms);
+  }
+  function pulseBoardWrap(b) {
+    if (!settings.display.impact) return;
+    const wrap = b.canvas ? b.canvas.closest('.board-wrap') : null;
+    if (!wrap) return;
+    wrap.classList.remove('impact-pulse');
+    void wrap.offsetWidth;
+    wrap.classList.add('impact-pulse');
+    setTimeout(() => wrap.classList.remove('impact-pulse'), 450);
+  }
+  function flashBoardWrap(b) {
+    if (!settings.display.impact) return;
+    const wrap = b.canvas ? b.canvas.closest('.board-wrap') : null;
+    if (!wrap) return;
+    wrap.classList.remove('impact-flash');
+    void wrap.offsetWidth;
+    wrap.classList.add('impact-flash');
+    setTimeout(() => wrap.classList.remove('impact-flash'), 550);
+  }
+  function chromaBoardWrap(b) {
+    if (!settings.display.impact) return;
+    const wrap = b.canvas ? b.canvas.closest('.board-wrap') : null;
+    if (!wrap) return;
+    wrap.classList.remove('impact-chroma');
+    void wrap.offsetWidth;
+    wrap.classList.add('impact-chroma');
+    setTimeout(() => wrap.classList.remove('impact-chroma'), 500);
+  }
+  function boostVignette() {
+    if (!settings.display.impact) return;
+    document.body.classList.remove('vignette-boost');
+    void document.body.offsetWidth;
+    document.body.classList.add('vignette-boost');
+    setTimeout(() => document.body.classList.remove('vignette-boost'), 700);
+  }
+  function spawnLineBeam(b, row) {
+    if (!settings.display.impact || !b.popupLayer) return;
+    const beam = document.createElement('div');
+    beam.className = 'line-beam';
+    beam.style.top = `${row * CELL}px`;
+    b.popupLayer.appendChild(beam);
+    setTimeout(() => beam.remove(), 600);
+  }
   function spawnPopup(b, text, cls) {
     if (!settings.display.popups) return;
     if (!b.popupLayer) return;
     const el = document.createElement('div');
     el.className = 'popup ' + cls;
     el.textContent = text;
+    // Combo escalation: pop grows and shifts color with streak length
+    if (cls === 'popup-combo' && b.combo > 2) {
+      const size = Math.min(48, 22 + b.combo * 2.5);
+      el.style.fontSize = `${size}px`;
+      el.style.color = b.combo > 8 ? '#ff3ea5' : b.combo > 5 ? '#ffb400' : '#6df0ff';
+      el.style.textShadow = `0 0 ${16 + b.combo * 2}px currentColor, 0 2px 4px rgba(0,0,0,0.7)`;
+    }
     b.popupLayer.appendChild(el);
     setTimeout(() => el.remove(), 1500);
   }
@@ -1336,6 +1412,7 @@
   function applyDisplaySettings() {
     document.body.classList.toggle('no-glow', !settings.display.glow);
     document.body.classList.toggle('no-stars', !settings.display.stars);
+    document.body.classList.toggle('no-vignette', !settings.display.vignette);
   }
   function applyAudioSettings() {
     window.audio.setBgmVolume(settings.audio.bgmVolume / 100);
@@ -1493,10 +1570,13 @@
   function loop(t) {
     try {
       const dt = Math.min(100, t - lastTime); lastTime = t;
+      // Hit-stop: freeze gameplay update on impactful clears, but keep
+      // particles and shake rendering so the frozen moment still feels alive.
+      const frozen = t < hitStopUntil;
       pollGamepad(t);
       if (appState === 'menu') updateModeBg(dt);
       else if (appState === 'playing') {
-        if (!paused && !matchEnded) for (const b of activeBoards) updateBoardTick(b, dt, t);
+        if (!paused && !matchEnded && !frozen) for (const b of activeBoards) updateBoardTick(b, dt, t);
         checkMatchEnd();
         for (const b of activeBoards) {
           updateParticles(b, dt);
