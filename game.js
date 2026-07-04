@@ -8,7 +8,9 @@
   const LINE_FLASH_MS = 260;
   const INFINITY_CLEAR_ROWS = 8;
   // Garbage sent per lines cleared (idx = lines cleared). T-Spin/B2B add bonuses.
-  const GARBAGE_BY_LINES = [0, 0, 1, 2, 4];
+  // Garbage sent per lines cleared. Buffed vs. standard to make VS CPU
+  // winnable — singles now send 1 row so even novice clears build pressure.
+  const GARBAGE_BY_LINES = [0, 1, 2, 4, 8];
 
   const $ = (id) => document.getElementById(id);
 
@@ -513,9 +515,10 @@
         spawnPopup(b, `LEVEL ${b.level}`, 'popup-levelup');
         if (!b.isCPU) { window.audio.playSE('levelUp'); if (settings.display.flash) triggerFlash('level'); }
       }
-      // Garbage send (VS)
+      // Garbage send (VS). T-Spin bonus is 3x per line (T-Spin single = 3,
+      // double = 6, triple = 9) so risky setups pay off.
       if (mode === 'cpu' && b.opponent && !b.opponent.gameOver) {
-        let g = tspin ? cleared * 2 : GARBAGE_BY_LINES[cleared] || 0;
+        let g = tspin ? Math.max(2, cleared * 3) : GARBAGE_BY_LINES[cleared] || 0;
         if (b.b2b > 1) g += 1;
         if (b.combo > 0) g += Math.floor(b.combo / 2);
         if (g > 0) sendGarbage(b, g);
@@ -847,8 +850,8 @@
   // Difficulty presets — control both action speed and eval noise.
   // Higher noise = worse choice; longer speed = slower moves.
   const CPU_PRESETS = {
-    easy:   { speed: 400, noise: 3.5, missChance: 0.20 },
-    normal: { speed: 140, noise: 0.9, missChance: 0.05 },
+    easy:   { speed: 700, noise: 5.0, missChance: 0.35 },
+    normal: { speed: 180, noise: 1.2, missChance: 0.08 },
     hard:   { speed: 60,  noise: 0.2, missChance: 0    },
     expert: { speed: 15,  noise: 0,   missChance: 0    },
   };
