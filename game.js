@@ -420,17 +420,39 @@
   };
   const PUYO_TYPES = ['R', 'B', 'G', 'Y', 'P'];
 
-  function drawPuyo(c, x, y, size, type, grid) {
+  // One authentic Puyo white eye: big sclera with a sharp top point (splaying
+  // outward) and a round bottom that converges to the center, so the pair meets
+  // in the middle. Pupils are drawn separately (forward-facing) by the caller.
+  function drawPuyoPointedEye(c, ex, ey, ew, eh, rot, dark) {
+    c.save();
+    c.translate(ex, ey);
+    c.rotate(rot);
+    c.beginPath();
+    c.moveTo(0, -eh);                              // sharp top point
+    c.bezierCurveTo(ew, -eh * 0.85, ew, eh * 0.55, 0, eh);   // outer side -> round bottom
+    c.bezierCurveTo(-ew, eh * 0.55, -ew, -eh * 0.85, 0, -eh); // inner side -> back to point
+    c.closePath();
+    c.fillStyle = '#ffffff';
+    c.fill();
+    c.lineWidth = 1;
+    c.strokeStyle = dark;
+    c.globalAlpha = 0.3;
+    c.stroke();
+    c.globalAlpha = 1;
+    c.restore();
+  }
+
+  function drawPuyo(c, x, y, size, type, grid, anim) {
     const px = x * size, py = y * size;
     const colors = PUYO_COLORS[type];
     if (!colors) return;
-    
-    // Connect check
-    let u = y > 0 && grid[y-1][x] === type;
-    let d = y < ROWS - 1 && grid[y+1][x] === type;
-    let l = x > 0 && grid[y][x-1] === type;
-    let r = x < COLS - 1 && grid[y][x+1] === type;
-    
+
+    // Connect check (guard rows so empty preview grids [] don't throw)
+    let u = y > 0 && grid[y-1] && grid[y-1][x] === type;
+    let d = y < ROWS - 1 && grid[y+1] && grid[y+1][x] === type;
+    let l = x > 0 && grid[y] && grid[y][x-1] === type;
+    let r = x < COLS - 1 && grid[y] && grid[y][x+1] === type;
+
     if (type === 'O') { u = d = l = r = false; } // Garbage Puyo doesn't connect
 
     const radius = size * 0.46;
@@ -439,6 +461,19 @@
     const s = size; // alias
 
     c.save();
+
+    // ── Squash & stretch / jiggle transform ──
+    // anim = { sx, sy, ox, oy, blink, flash }. Scaling anchors on the cell
+    // bottom so a landing puyo squishes onto the floor like a gel blob.
+    if (anim) {
+      if (anim.ox || anim.oy) c.translate(anim.ox || 0, anim.oy || 0);
+      if ((anim.sx && anim.sx !== 1) || (anim.sy && anim.sy !== 1)) {
+        const ax = cx, ay = py + size;
+        c.translate(ax, ay);
+        c.scale(anim.sx || 1, anim.sy || 1);
+        c.translate(-ax, -ay);
+      }
+    }
 
     // ── Body shape (rounded with connection flattening) ──
     const rT = u ? 0 : radius;
@@ -467,16 +502,14 @@
     c.lineWidth = 1.6;
     c.stroke();
 
-    // ── Big glossy highlight (top-left) ──
-    c.fillStyle = 'rgba(255,255,255,0.45)';
+    // ── Big soft glossy dome highlight (wet gel shine) ──
+    const gloss = c.createRadialGradient(cx - s * 0.08, cy - s * 0.24, s * 0.02, cx - s * 0.04, cy - s * 0.16, s * 0.42);
+    gloss.addColorStop(0, 'rgba(255,255,255,0.78)');
+    gloss.addColorStop(0.55, 'rgba(255,255,255,0.20)');
+    gloss.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = gloss;
     c.beginPath();
-    c.ellipse(cx - s * 0.18, cy - s * 0.20, s * 0.18, s * 0.12, -0.4, 0, Math.PI * 2);
-    c.fill();
-
-    // ── Small secondary highlight ──
-    c.fillStyle = 'rgba(255,255,255,0.3)';
-    c.beginPath();
-    c.arc(cx - s * 0.28, cy - s * 0.06, s * 0.06, 0, Math.PI * 2);
+    c.ellipse(cx - s * 0.04, cy - s * 0.15, s * 0.32, s * 0.26, 0, 0, Math.PI * 2);
     c.fill();
 
     // ── EYES ──
@@ -491,67 +524,50 @@
       // Right X
       c.beginPath(); c.moveTo(cx + 2, cy - 4); c.lineTo(cx + 7, cy + 1); c.stroke();
       c.beginPath(); c.moveTo(cx + 7, cy - 4); c.lineTo(cx + 2, cy + 1); c.stroke();
-    } else {
-      const eyeOffY = cy - s * 0.04;
-      const eyeSpacing = s * 0.17;
-      const eyeR = s * 0.14; // Big white sclera
-
-      // White sclera (big cute eyes!)
-      c.fillStyle = '#ffffff';
-      c.beginPath();
-      c.ellipse(cx - eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
-      c.fill();
-      c.beginPath();
-      c.ellipse(cx + eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
-      c.fill();
-
-      // Sclera outline
+    } else if (anim && anim.blink) {
+      // ── Blinking: two closed, happy curved eyes (‿ ‿), no mouth ──
+      const eyeCY = cy + s * 0.02;
+      const eyeDX = s * 0.185;
       c.strokeStyle = colors.dark;
-      c.lineWidth = 0.8;
-      c.beginPath();
-      c.ellipse(cx - eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
-      c.stroke();
-      c.beginPath();
-      c.ellipse(cx + eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
-      c.stroke();
-
-      // Colored iris
-      const irisR = eyeR * 0.6;
-      c.fillStyle = colors.dark;
-      c.beginPath();
-      c.arc(cx - eyeSpacing, eyeOffY + s * 0.02, irisR, 0, Math.PI * 2);
-      c.fill();
-      c.beginPath();
-      c.arc(cx + eyeSpacing, eyeOffY + s * 0.02, irisR, 0, Math.PI * 2);
-      c.fill();
-
-      // Black pupil
-      const pupilR = irisR * 0.55;
-      c.fillStyle = '#000000';
-      c.beginPath();
-      c.arc(cx - eyeSpacing, eyeOffY + s * 0.025, pupilR, 0, Math.PI * 2);
-      c.fill();
-      c.beginPath();
-      c.arc(cx + eyeSpacing, eyeOffY + s * 0.025, pupilR, 0, Math.PI * 2);
-      c.fill();
-
-      // Eye highlight dots (top-right sparkle)
-      c.fillStyle = '#ffffff';
-      c.beginPath();
-      c.arc(cx - eyeSpacing + irisR * 0.35, eyeOffY - irisR * 0.25, pupilR * 0.55, 0, Math.PI * 2);
-      c.fill();
-      c.beginPath();
-      c.arc(cx + eyeSpacing + irisR * 0.35, eyeOffY - irisR * 0.25, pupilR * 0.55, 0, Math.PI * 2);
-      c.fill();
-
-      // ── Cute mouth (small arc smile) ──
-      c.strokeStyle = colors.dark;
-      c.lineWidth = 1.2;
+      c.lineWidth = Math.max(2, s * 0.05);
       c.lineCap = 'round';
       c.beginPath();
-      c.arc(cx, cy + s * 0.18, s * 0.08, 0.15 * Math.PI, 0.85 * Math.PI);
+      c.arc(cx - eyeDX, eyeCY - s * 0.05, s * 0.16, 0.15 * Math.PI, 0.85 * Math.PI);
       c.stroke();
+      c.beginPath();
+      c.arc(cx + eyeDX, eyeCY - s * 0.05, s * 0.16, 0.15 * Math.PI, 0.85 * Math.PI);
+      c.stroke();
+    } else {
+      // ── Authentic Puyo eyes: big pointed-top white pair meeting at center ──
+      const eyeCY = cy + s * 0.02;
+      const eyeDX = s * 0.17;
+      const ew = s * 0.205;
+      const eh = s * 0.335;
+      const lean = 0.22;
+      // Tops splay outward (bottoms converge to center) -> classic M silhouette.
+      drawPuyoPointedEye(c, cx - eyeDX, eyeCY, ew, eh, -lean, colors.dark);
+      drawPuyoPointedEye(c, cx + eyeDX, eyeCY, ew, eh, lean, colors.dark);
+      // Forward-facing black pupils, big, slightly low and toward center.
+      const pupilR = s * 0.115;
+      const pupilDX = s * 0.145;
+      const pupilY = eyeCY + s * 0.075;
+      c.fillStyle = '#111111';
+      c.beginPath(); c.arc(cx - pupilDX, pupilY, pupilR, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(cx + pupilDX, pupilY, pupilR, 0, Math.PI * 2); c.fill();
+      // Sparkle highlights (top-left of each pupil).
+      c.fillStyle = 'rgba(255,255,255,0.92)';
+      c.beginPath(); c.arc(cx - pupilDX - pupilR * 0.3, pupilY - pupilR * 0.35, pupilR * 0.4, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(cx + pupilDX - pupilR * 0.3, pupilY - pupilR * 0.35, pupilR * 0.4, 0, Math.PI * 2); c.fill();
     }
+
+    // ── Pre-pop white flash overlay (about to burst) ──
+    if (anim && anim.flash > 0) {
+      c.fillStyle = `rgba(255,255,255,${Math.min(0.85, anim.flash)})`;
+      c.beginPath();
+      c.ellipse(cx, cy, radius * 1.05, radius * 1.05, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+
     c.restore();
   }
 
@@ -698,7 +714,8 @@
       opponent: null,
       type: 'tetris', // 'tetris' or 'puyo'
       puyoChain: 0,
-      
+      puyoBounce: new Map(), // key "r,c" -> land timestamp, for squash&stretch bounce
+
       // Three.js instances
       scene: null,
       camera: null,
@@ -1006,7 +1023,13 @@
       else if (rotation === 2) p2y++;
       else if (rotation === 3) p2x--;
       if (p2y >= 0 && p2y < ROWS && p2x >= 0 && p2x < COLS) b.grid[p2y][p2x] = p2;
-      
+
+      // Landing bounce for the placed pair (gravity below may re-register if they fall further).
+      if (!b.puyoBounce) b.puyoBounce = new Map();
+      const lt = performance.now();
+      if (y >= 0 && y < ROWS) b.puyoBounce.set(`${y},${x}`, lt);
+      if (p2y >= 0 && p2y < ROWS && p2x >= 0 && p2x < COLS) b.puyoBounce.set(`${p2y},${p2x}`, lt);
+
       b.current = null;
       b.puyoChain = 0;
       checkPuyoChains(b, () => {
@@ -1063,6 +1086,7 @@
           while (targetY + 1 < ROWS && !b.grid[targetY+1][c]) targetY++;
           b.grid[targetY][c] = b.grid[r][c];
           b.grid[r][c] = null;
+          if (targetY !== r) { if (!b.puyoBounce) b.puyoBounce = new Map(); b.puyoBounce.set(`${targetY},${c}`, performance.now()); }
           dropped = true;
         }
       }
@@ -1115,7 +1139,7 @@
       }
       toClear.push(...oClear);
 
-      b.flashing = { puyos: toClear, timer: 0 };
+      b.flashing = { puyos: toClear, timer: 0, start: performance.now() };
       if (b.puyoChain === undefined) b.puyoChain = 0;
       b.puyoChain++;
 
@@ -1411,23 +1435,32 @@
   }
   function emitClearParticles(b, cx, cy, type) {
     if (!settings.display.particles) return;
-    const col = COLORS[type];
+    // Puyo colors (R/B/G/Y/P/O) live in PUYO_COLORS; tetris colors in COLORS.
+    const col = PUYO_COLORS[type] || COLORS[type] || { base: '#ffffff', light: '#ffffff' };
     const [r, g, bl] = hexToRgb(col.base);
-    const [lr, lg, lb] = hexToRgb(col.light);
+    const [lr, lg, lb] = hexToRgb(col.light || col.base);
     const px = (cx + 0.5) * CELL, py = (cy + 0.5) * CELL;
-    for (let i = 0; i < 14; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 1.2 + Math.random() * 3.5;
-      const white = i % 3 === 0;
+    // Radial shard burst — "はじけて消える".
+    const N = 20;
+    for (let i = 0; i < N; i++) {
+      const angle = (i / N) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 1.6 + Math.random() * 4;
+      const white = i % 4 === 0;
       b.particles.push({
         x: px, y: py,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2 - Math.random() * 1.5,
-        life: 0.7 + Math.random() * 0.6, maxLife: 1.2,
-        size: 2 + Math.random() * 3, gravity: 0.18,
+        vy: Math.sin(angle) * speed - 1.5 - Math.random() * 1.5,
+        life: 0.5 + Math.random() * 0.5, maxLife: 1.0,
+        size: 2 + Math.random() * 3, gravity: 0.16,
         rgb: white ? [lr, lg, lb] : [r, g, bl],
       });
     }
+    // Expanding pop ring.
+    b.particles.push({
+      ring: true, x: px, y: py, r0: CELL * 0.28, grow: CELL * 1.3,
+      life: 0.32, maxLife: 0.32, gravity: 0, vx: 0, vy: 0, size: 0,
+      rgb: [lr, lg, lb],
+    });
   }
   function updateParticles(b, dt) {
     const dts = dt / 16.67;
@@ -1589,91 +1622,79 @@
     ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
   }
 
-  function drawPuyo(ctx, x, y, cell, type, grid) {
-    const colors = PUYO_COLORS[type];
-    if (!colors) return;
-    
-    const cx = x * cell + cell / 2;
-    const cy = y * cell + cell / 2;
-    const r = cell / 2 - 1.5;
-    
-    let u = y > 0 && grid[y-1][x] === type;
-    let d = y < ROWS - 1 && grid[y+1][x] === type;
-    let l = x > 0 && grid[y][x-1] === type;
-    let rg = x < COLS - 1 && grid[y][x+1] === type;
-
-    if (type === 'O') {
-      ctx.fillStyle = colors.base;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.strokeStyle = '#374151';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(cx - 5, cy - 5); ctx.lineTo(cx + 5, cy + 5);
-      ctx.moveTo(cx + 5, cy - 5); ctx.lineTo(cx - 5, cy + 5);
-      ctx.stroke();
-      return;
-    }
-    
-    const pad = 1.5;
-    const left = x * cell + pad;
-    const top = y * cell + pad;
-    const size = cell - pad * 2;
-    const rad = r;
-
-    ctx.fillStyle = colors.base;
-    ctx.beginPath();
-    ctx.moveTo(left + (l || u ? 0 : rad), top);
-    ctx.lineTo(left + size - (rg || u ? 0 : rad), top);
-    if (!rg && !u) ctx.arcTo(left + size, top, left + size, top + rad, rad);
-    ctx.lineTo(left + size, top + size - (rg || d ? 0 : rad));
-    if (!rg && !d) ctx.arcTo(left + size, top + size, left + size - rad, top + size, rad);
-    ctx.lineTo(left + (l || d ? 0 : rad), top + size);
-    if (!l && !d) ctx.arcTo(left, top + size, left, top + size - rad, rad);
-    ctx.lineTo(left, top + (l || u ? 0 : rad));
-    if (!l && !u) ctx.arcTo(left, top, left + rad, top, rad);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = colors.light;
-    ctx.beginPath();
-    ctx.arc(cx - r/3, cy - r/3, r/4, 0, Math.PI * 2);
-    ctx.fill();
-
-    const eyeR = cell * 0.12;
-    const pupilR = cell * 0.06;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(cx - 4.5, cy + 1, eyeR, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 4.5, cy + 1, eyeR, 0, Math.PI * 2); ctx.fill();
-
-    ctx.fillStyle = '#000000';
-    ctx.beginPath(); ctx.arc(cx - 4.5, cy + 1, pupilR, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 4.5, cy + 1, pupilR, 0, Math.PI * 2); ctx.fill();
-  }
+  // NOTE: the authentic, cute drawPuyo (gradient body, big eyes, iris/pupil,
+  // glossy highlight, smile) is defined earlier in this file. This older, plain
+  // version used to shadow it (JS keeps the last function declaration), which is
+  // why puyos rendered flat and "didn't feel like Puyo". Removed on purpose.
 
   function drawParticles2D(b) {
     if (!settings.display.particles) return;
     for (const p of b.particles) {
       const a = Math.max(0, p.life / p.maxLife);
+      if (p.ring) {
+        // Expanding pop ring — the "burst" when a group clears.
+        const prog = 1 - a;
+        const rad = p.r0 + p.grow * prog;
+        b.ctx.save();
+        b.ctx.globalAlpha = a;
+        b.ctx.strokeStyle = `rgb(${p.rgb[0]}, ${p.rgb[1]}, ${p.rgb[2]})`;
+        b.ctx.lineWidth = Math.max(1, 4 * a);
+        b.ctx.beginPath();
+        b.ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+        b.ctx.stroke();
+        b.ctx.restore();
+        continue;
+      }
       b.ctx.fillStyle = `rgba(${p.rgb[0]}, ${p.rgb[1]}, ${p.rgb[2]}, ${a})`;
       b.ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
     }
   }
 
+  // Per-cell puyo animation: landing squash&stretch bounce + idle blinking.
+  const PUYO_BOUNCE_MS = 340;
+  function puyoCellAnim(b, r, c, now) {
+    let sx = 1, sy = 1;
+    const bt = b.puyoBounce ? b.puyoBounce.get(`${r},${c}`) : undefined;
+    if (bt !== undefined) {
+      const el = now - bt;
+      if (el >= 0 && el < PUYO_BOUNCE_MS) {
+        const t = el / PUYO_BOUNCE_MS;
+        // Decaying bounce: starts flattened on impact, overshoots, settles.
+        const sq = Math.exp(-t * 5) * Math.cos(t * Math.PI * 3) * 0.26;
+        sy = 1 - sq;
+        sx = 1 + sq * 0.65;
+      }
+    }
+    // Idle blink, staggered per cell so the field doesn't blink in unison.
+    const period = 3400;
+    const phase = ((c * 7 + r * 13) % 21) / 21;
+    const blink = (((now / period) + phase) % 1) < 0.05;
+    return { sx, sy, ox: 0, oy: 0, blink, flash: 0 };
+  }
+
   function drawBoard2D(b) {
     drawGrid(b);
-    
+
     if (b.type === 'puyo') {
-      const flashPuyos = b.flashing ? new Set(b.flashing.puyos.map(([r, c]) => `${r},${c}`)) : null;
+      const now = performance.now();
+      const flashPuyos = (b.flashing && b.flashing.puyos) ? new Set(b.flashing.puyos.map(([r, c]) => `${r},${c}`)) : null;
+      const flashEl = (b.flashing && b.flashing.start) ? now - b.flashing.start : 0;
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const t = b.grid[r][c]; if (!t) continue;
           if (flashPuyos && flashPuyos.has(`${r},${c}`)) {
-            drawFlashBlock(b.ctx, c, r, CELL, 0.4);
+            // Pre-pop プルプル: rapid wobble + swelling white flash before bursting.
+            const pulse = 0.5 + 0.5 * Math.sin(flashEl * 0.05);
+            drawPuyo(b.ctx, c, r, CELL, t, b.grid, {
+              sx: 1 - 0.07 * pulse,
+              sy: 1 + 0.07 * pulse,
+              ox: Math.sin(flashEl * 0.045 + (c + r)) * CELL * 0.05,
+              oy: 0,
+              blink: false,
+              flash: 0.2 + 0.5 * pulse,
+            });
           } else {
-            drawPuyo(b.ctx, c, r, CELL, t, b.grid);
+            drawPuyo(b.ctx, c, r, CELL, t, b.grid, puyoCellAnim(b, r, c, now));
           }
         }
       }
@@ -1973,6 +1994,7 @@
     // 3. Particles
     if (settings.display.particles && b.particles.length > 0) {
       for (const p of b.particles) {
+        if (p.ring) continue; // ring pop is a 2D-only effect
         const a = Math.max(0, p.life / p.maxLife);
         const hex = `rgb(${p.rgb[0]},${p.rgb[1]},${p.rgb[2]})`;
         const pMat = getMaterial(hex, 0.2, 0.6, a);
@@ -3605,6 +3627,7 @@
     if (b.holdPanel) b.holdPanel.classList.remove('locked');
     b.flashing = null;
     b.particles.length = 0;
+    if (b.puyoBounce) b.puyoBounce.clear();
     b.current = null;
     b.pendingGarbage = 0;
     updateWarningQueue(b);
