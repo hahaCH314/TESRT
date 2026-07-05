@@ -436,10 +436,11 @@
     const radius = size * 0.46;
     const cx = px + size / 2;
     const cy = py + size / 2;
+    const s = size; // alias
 
     c.save();
-    c.fillStyle = colors.base;
-    
+
+    // ── Body shape (rounded with connection flattening) ──
     const rT = u ? 0 : radius;
     const rB = d ? 0 : radius;
     const rL = l ? 0 : radius;
@@ -452,33 +453,104 @@
     c.arcTo(px + (l ? 0 : 2), py + size - (d ? 0 : 2), px + (l ? 0 : 2), cy, rL);
     c.arcTo(px + (l ? 0 : 2), py + (u ? 0 : 2), cx, py + (u ? 0 : 2), rT);
     c.closePath();
+
+    // ── Radial gradient body fill (3D sphere look) ──
+    const grad = c.createRadialGradient(cx - s * 0.15, cy - s * 0.18, s * 0.05, cx, cy, s * 0.52);
+    grad.addColorStop(0, colors.light);
+    grad.addColorStop(0.45, colors.base);
+    grad.addColorStop(1, colors.dark);
+    c.fillStyle = grad;
     c.fill();
 
+    // ── Outline ──
     c.strokeStyle = colors.dark;
-    c.lineWidth = 1.8;
+    c.lineWidth = 1.6;
     c.stroke();
 
-    // Gloss
-    c.fillStyle = colors.light;
+    // ── Big glossy highlight (top-left) ──
+    c.fillStyle = 'rgba(255,255,255,0.45)';
     c.beginPath();
-    c.arc(cx - radius * 0.3, cy - radius * 0.3, radius * 0.25, 0, Math.PI * 2);
+    c.ellipse(cx - s * 0.18, cy - s * 0.20, s * 0.18, s * 0.12, -0.4, 0, Math.PI * 2);
     c.fill();
 
-    // Eyes
+    // ── Small secondary highlight ──
+    c.fillStyle = 'rgba(255,255,255,0.3)';
+    c.beginPath();
+    c.arc(cx - s * 0.28, cy - s * 0.06, s * 0.06, 0, Math.PI * 2);
+    c.fill();
+
+    // ── EYES ──
     if (type === 'O') {
+      // Garbage puyo: X-shaped eyes
       c.strokeStyle = '#374151';
-      c.lineWidth = 2.2;
-      // Left eye X
-      c.beginPath(); c.moveTo(cx - 6, cy - 3); c.lineTo(cx - 2, cy + 1); c.moveTo(cx - 2, cy - 3); c.lineTo(cx - 6, cy + 1); c.stroke();
-      // Right eye X
-      c.beginPath(); c.moveTo(cx + 2, cy - 3); c.lineTo(cx + 6, cy + 1); c.moveTo(cx + 6, cy - 3); c.lineTo(cx + 2, cy + 1); c.stroke();
+      c.lineWidth = 2.5;
+      c.lineCap = 'round';
+      // Left X
+      c.beginPath(); c.moveTo(cx - 7, cy - 4); c.lineTo(cx - 2, cy + 1); c.stroke();
+      c.beginPath(); c.moveTo(cx - 2, cy - 4); c.lineTo(cx - 7, cy + 1); c.stroke();
+      // Right X
+      c.beginPath(); c.moveTo(cx + 2, cy - 4); c.lineTo(cx + 7, cy + 1); c.stroke();
+      c.beginPath(); c.moveTo(cx + 7, cy - 4); c.lineTo(cx + 2, cy + 1); c.stroke();
     } else {
+      const eyeOffY = cy - s * 0.04;
+      const eyeSpacing = s * 0.17;
+      const eyeR = s * 0.14; // Big white sclera
+
+      // White sclera (big cute eyes!)
       c.fillStyle = '#ffffff';
-      c.beginPath(); c.arc(cx - 4, cy, 3.5, 0, Math.PI * 2); c.arc(cx + 4, cy, 3.5, 0, Math.PI * 2); c.fill();
+      c.beginPath();
+      c.ellipse(cx - eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.ellipse(cx + eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // Sclera outline
+      c.strokeStyle = colors.dark;
+      c.lineWidth = 0.8;
+      c.beginPath();
+      c.ellipse(cx - eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
+      c.stroke();
+      c.beginPath();
+      c.ellipse(cx + eyeSpacing, eyeOffY, eyeR, eyeR * 1.1, 0, 0, Math.PI * 2);
+      c.stroke();
+
+      // Colored iris
+      const irisR = eyeR * 0.6;
+      c.fillStyle = colors.dark;
+      c.beginPath();
+      c.arc(cx - eyeSpacing, eyeOffY + s * 0.02, irisR, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.arc(cx + eyeSpacing, eyeOffY + s * 0.02, irisR, 0, Math.PI * 2);
+      c.fill();
+
+      // Black pupil
+      const pupilR = irisR * 0.55;
       c.fillStyle = '#000000';
-      c.beginPath(); c.arc(cx - 4, cy + 0.5, 1.8, 0, Math.PI * 2); c.arc(cx + 4, cy + 0.5, 1.8, 0, Math.PI * 2); c.fill();
+      c.beginPath();
+      c.arc(cx - eyeSpacing, eyeOffY + s * 0.025, pupilR, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.arc(cx + eyeSpacing, eyeOffY + s * 0.025, pupilR, 0, Math.PI * 2);
+      c.fill();
+
+      // Eye highlight dots (top-right sparkle)
       c.fillStyle = '#ffffff';
-      c.beginPath(); c.arc(cx - 4.5, cy, 0.6, 0, Math.PI * 2); c.arc(cx + 3.5, cy, 0.6, 0, Math.PI * 2); c.fill();
+      c.beginPath();
+      c.arc(cx - eyeSpacing + irisR * 0.35, eyeOffY - irisR * 0.25, pupilR * 0.55, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.arc(cx + eyeSpacing + irisR * 0.35, eyeOffY - irisR * 0.25, pupilR * 0.55, 0, Math.PI * 2);
+      c.fill();
+
+      // ── Cute mouth (small arc smile) ──
+      c.strokeStyle = colors.dark;
+      c.lineWidth = 1.2;
+      c.lineCap = 'round';
+      c.beginPath();
+      c.arc(cx, cy + s * 0.18, s * 0.08, 0.15 * Math.PI, 0.85 * Math.PI);
+      c.stroke();
     }
     c.restore();
   }
