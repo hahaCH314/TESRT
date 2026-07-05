@@ -160,12 +160,7 @@
     chalk: makeThemeColors('#94a3b8', '#cbd5e1', '#475569', '#cbd5e1', '#f1f5f9', '#64748b'),
     metal: makeThemeColors('#94a3b8', '#cbd5e1', '#334155', '#475569', '#94a3b8', '#1e293b'),
     wood: makeThemeColors('#854d0e', '#fef9c3', '#451a03', '#a16207', '#fef08a', '#78350f'),
-    glass: makeThemeColors('#e2e8f0', '#ffffff', '#cbd5e1', '#ffffff', '#ffffff', '#e2e8f0')
-  };c', light:'#f0fdf4', dark:'#15803d' },
-      Y: { base:'#fef08a', light:'#fefce8', dark:'#a16207' },
-      P: { base:'#d8b4fe', light:'#faf5ff', dark:'#7e22ce' },
-      O_puyo: { base:'#d1d5db', light:'#f3f4f6', dark:'#4b5563' }
-    },
+    glass: makeThemeColors('#e2e8f0', '#ffffff', '#cbd5e1', '#ffffff', '#ffffff', '#e2e8f0'),
     retro: {
       I: { base:'#ff4500', light:'#ff7f50', dark:'#8b0000' },
       J: { base:'#1e90ff', light:'#87cefa', dark:'#00008b' },
@@ -184,11 +179,43 @@
     }
   };
 
-  let userCoins = parseInt(localStorage.getItem('puyotetris_coins') || '0');
-  let ownedSkins = JSON.parse(localStorage.getItem('puyotetris_owned_skins') || '["classic"]');
-  let ownedBgs = JSON.parse(localStorage.getItem('puyotetris_owned_bgs') || '["default"]');
-  let activeSkin = localStorage.getItem('puyotetris_active_skin') || 'classic';
-  let activeBg = localStorage.getItem('puyotetris_active_bg') || 'default';
+  let userCoins = 0;
+  try {
+    userCoins = parseInt(localStorage.getItem('puyotetris_coins') || '0');
+    if (isNaN(userCoins)) userCoins = 0;
+  } catch (e) {
+    userCoins = 0;
+  }
+
+  let ownedSkins = ["classic"];
+  try {
+    ownedSkins = JSON.parse(localStorage.getItem('puyotetris_owned_skins') || '["classic"]');
+    if (!Array.isArray(ownedSkins)) ownedSkins = ["classic"];
+  } catch (e) {
+    ownedSkins = ["classic"];
+  }
+
+  let ownedBgs = ["default"];
+  try {
+    ownedBgs = JSON.parse(localStorage.getItem('puyotetris_owned_bgs') || '["default"]');
+    if (!Array.isArray(ownedBgs)) ownedBgs = ["default"];
+  } catch (e) {
+    ownedBgs = ["default"];
+  }
+
+  let activeSkin = 'classic';
+  try {
+    activeSkin = localStorage.getItem('puyotetris_active_skin') || 'classic';
+  } catch (e) {
+    activeSkin = 'classic';
+  }
+
+  let activeBg = 'default';
+  try {
+    activeBg = localStorage.getItem('puyotetris_active_bg') || 'default';
+  } catch (e) {
+    activeBg = 'default';
+  }
 
   // ---------- SHAPES & COLORS ----------
   const SHAPES = {
@@ -2736,9 +2763,11 @@
   function updateCustomizeDropdowns() {
     const skinSelect = $('skinSelect');
     const bgSelect = $('bgSelect');
+    if (!skinSelect || !bgSelect) return;
     
     skinSelect.innerHTML = '';
     ownedSkins.forEach(key => {
+      if (!SKINS[key]) return;
       const opt = document.createElement('option');
       opt.value = key;
       opt.textContent = SKINS[key].name;
@@ -2748,6 +2777,7 @@
 
     bgSelect.innerHTML = '';
     ownedBgs.forEach(key => {
+      if (!BACKGROUNDS[key]) return;
       const opt = document.createElement('option');
       opt.value = key;
       opt.textContent = BACKGROUNDS[key].name;
