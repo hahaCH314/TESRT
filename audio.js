@@ -29,12 +29,25 @@
       this.bgmBaseTempo = 150;  // resting BPM
       this.bgmMaxTempo = 205;   // BPM at pinch = 1.0
       this.pinchIntensity = 0;  // 0..1 — game.js sets this each frame
+      
+      // Preload high-quality EDM/Orchestra BGM
+      this.bgmAudio = new Audio();
+      this.bgmAudio.src = 'https://raw.githubusercontent.com/llop/classic-tetris-js/master/assets/audio/korobeiniki.mp3';
+      this.bgmAudio.loop = true;
+      this.bgmAudio.crossOrigin = 'anonymous';
+      this.bgmLoaded = false;
+      this.bgmAudio.addEventListener('canplaythrough', () => {
+        this.bgmLoaded = true;
+      });
+      this.bgmAudio.load();
     }
 
-    // Called from game.js: 0 = calm, 1 = about to top out.
-    // Tempo and EDM layer density both scale with this value.
     setPinchIntensity(v) {
       this.pinchIntensity = Math.max(0, Math.min(1, v || 0));
+      if (this.bgmLoaded && this.bgmAudio) {
+        // High pitch/tempo escalation during pinch (Tetris clutch style)
+        this.bgmAudio.playbackRate = 1.0 + this.pinchIntensity * 0.20;
+      }
     }
 
     ensure() {
@@ -66,6 +79,7 @@
     }
     setBgmVolume(v) {
       this.bgmVolume = v;
+      if (this.bgmAudio) this.bgmAudio.volume = v;
       if (this.bgmGain && this.bgmEnabled) {
         const t = (this.ctx?.currentTime) ?? 0;
         this.bgmGain.gain.setTargetAtTime(v, t, 0.02);
@@ -74,8 +88,12 @@
     setSeEnabled(b) { this.seEnabled = b; }
     setBgmEnabled(b) {
       this.bgmEnabled = b;
+      if (this.bgmAudio) {
+        if (!b) this.bgmAudio.pause();
+        else if (this.bgmActive) this.bgmAudio.play().catch(() => {});
+      }
       if (!this.bgmGain) return;
-      const t = this.ctx.currentTime;
+      const t = this.ctx ? this.ctx.currentTime : 0;
       this.bgmGain.gain.cancelScheduledValues(t);
       this.bgmGain.gain.setTargetAtTime(b ? this.bgmVolume : 0, t, 0.02);
       if (!b) this.stopBGM();
@@ -83,7 +101,7 @@
     }
 
     // -------- SE --------
-    playSE(type) {
+    playSE(type, arg) {
       if (!this.seEnabled) return;
       this.ensure();
       if (!this.ctx) return;
@@ -105,6 +123,11 @@
         case 'gameOver': return this._descend();
         case 'pause':    return this._tone({ freq: 660, dur: 0.10, type: 'sine',     vol: 0.35 });
         case 'hit':      return this._tone({ freq: 120, dur: 0.04, type: 'sawtooth', vol: 0.25 });
+        case 'puyoMove':   return this._tone({ freq: 280, dur: 0.04, type: 'triangle', vol: 0.30 });
+        case 'puyoRotate': return this._tone({ freq: 380, dur: 0.06, type: 'triangle', vol: 0.35, sweepTo: 520 });
+        case 'puyoPlace':  return this._tone({ freq: 150, dur: 0.05, type: 'sine',     vol: 0.40 });
+        case 'puyoPop':    return this._puyoPopFx();
+        case 'puyoChain':  return this._puyoChainFx(arg);
       }
     }
 
@@ -237,19 +260,34 @@
     startBGM() {
       if (!this.bgmEnabled) return;
       this.ensure();
-      if (!this.ctx) return;
       if (this.bgmActive) return;
       this.bgmActive = true;
-      this.bgmNextTime = this.ctx.currentTime + 0.12;
-      // restore gain in case it was ramped down
-      const t = this.ctx.currentTime;
-      this.bgmGain.gain.cancelScheduledValues(t);
-      this.bgmGain.gain.setTargetAtTime(this.bgmVolume, t, 0.02);
-      this._scheduleBGM();
+      
+      const t = this.ctx ? this.ctx.currentTime : 0;
+      if (this.bgmGain) {
+        this.bgmGain.gain.cancelScheduledValues(t);
+        this.bgmGain.gain.setTargetAtTime(this.bgmVolume, t, 0.02);
+      }
+
+      if (this.bgmLoaded && this.bgmAudio) {
+        this.bgmAudio.volume = this.bgmVolume;
+        this.bgmAudio.play().catch(e => {
+          this.bgmLoaded = false;
+          this.bgmNextTime = t + 0.12;
+          this._scheduleBGM();
+        });
+      } else {
+        this.bgmNextTime = t + 0.12;
+        this._scheduleBGM();
+      }
     }
 
     stopBGM() {
       this.bgmActive = false;
+      if (this.bgmAudio) {
+        this.bgmAudio.pause();
+        this.bgmAudio.currentTime = 0;
+      }
       if (this.bgmTimer) { clearTimeout(this.bgmTimer); this.bgmTimer = null; }
       for (const n of this.bgmNodes) {
         try { n.osc.stop(); } catch {}
@@ -442,6 +480,61 @@
       src.start(time);
       const stopAt = time + dur + 0.02;
       this.bgmNodes.push({ osc: src, g, stopAt });
+    }
+
+    _puyoPopFx() {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, t);
+      osc.frequency.exponentialRampToValueAtTime(1400, t + 0.08);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.38, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+      osc.connect(g).connect(this.seGain);
+      osc.start(t); osc.stop(t + 0.1);
+    }
+
+    _puyoChainFx(chain) {
+      const idx = Math.min(6, Math.max(1, chain || 1)) - 1;
+      const t0 = this.ctx.currentTime;
+
+      // 1. Synth Arpeggio SFX (plays in the background)
+      const baseFreq = 261.63 * Math.pow(1.059, (chain || 1) * 2);
+      const freqs = [baseFreq, baseFreq * 1.25, baseFreq * 1.5, baseFreq * 2];
+      freqs.forEach((f, i) => {
+        const t = t0 + i * 0.06;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.35, t + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.connect(g).connect(this.seGain);
+        osc.start(t); osc.stop(t + 0.2);
+      });
+
+      // 2. High Quality Speech Synthesis Voice!
+      const spells = [
+        "ファイヤー！",
+        "アイスストーム！",
+        "ダイヤキュート！",
+        "ブレインダムド！",
+        "ジュゲム！",
+        "ばよえ〜ん！"
+      ];
+      const spellText = spells[idx];
+      if ('speechSynthesis' in window && this.seEnabled) {
+        const uttr = new SpeechSynthesisUtterance(spellText);
+        uttr.lang = 'ja-JP';
+        uttr.pitch = 1.7; // Cute, high-pitched anime voice style
+        uttr.rate = 1.4;  // Energetic fast speech
+        uttr.volume = this.seVolume;
+        window.speechSynthesis.cancel(); // Interrupt current spell for instant response
+        window.speechSynthesis.speak(uttr);
+      }
     }
   }
 

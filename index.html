@@ -70,11 +70,213 @@
             <div class="card-desc">ゲームオーバー無し。<br>盤面が埋まっても<br>復活してノンストップ。</div>
             <div class="card-cta">DIVE</div>
           </button>
+
+          <button class="mode-card" data-mode="online">
+            <div class="card-glow"></div>
+            <div class="card-icon icon-online">
+              <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;stroke-linejoin:round;">
+                <circle cx="30" cy="30" r="18" stroke="currentColor"/>
+                <path d="M12 30 H48 M30 12 A18 18 0 0 0 30 48 A18 18 0 0 0 30 12" stroke="currentColor"/>
+              </svg>
+            </div>
+            <div class="card-name">ONLINE VS</div>
+            <div class="card-tag">MULTIPLAYER</div>
+            <div class="card-desc">P2P通信で遠くの<br>友達とリアルタイム<br>対戦！サーバー不要。</div>
+            <div class="card-cta">CONNECT</div>
+          </button>
+
+          <button class="mode-card" data-mode="shop">
+            <div class="card-glow"></div>
+            <div class="card-icon icon-shop" style="color:#ffb400; filter:drop-shadow(0 0 10px rgba(255,180,0,0.5));">
+              <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;stroke-linejoin:round;">
+                <path d="M10 20 L50 20 L45 50 L15 50 Z M20 20 A10 10 0 0 1 40 20" stroke="currentColor"/>
+              </svg>
+            </div>
+            <div class="card-name">SHOP</div>
+            <div class="card-tag">STORE</div>
+            <div class="card-desc">集めたコインで<br>可愛いスキンや<br>背景を着せ替え！</div>
+            <div class="card-cta">ENTER</div>
+          </button>
         </div>
 
         <div class="mode-footer">
           <span class="mode-brand">G-<em>mode</em></span>
           <span class="mode-hint">← → で選択 / Enter で決定</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOP PANEL -->
+    <section id="shopPanel" class="mode-select hidden">
+      <div class="mode-select-inner" style="max-width: 750px;">
+        <div class="mode-tagline"><span>◆</span><span>GACHA SHOP</span><span>◆</span></div>
+        <h1 class="mode-title" data-text="GACHA SHOP">GACHA SHOP</h1>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,0.9); padding:12px 24px; border-radius:12px; border:1.5px solid var(--border-color); margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <span style="font-weight:bold; color:#d97706; font-size: 1.2rem;">所持コイン: <span id="shopCoinsDisplay">0</span> 🪙</span>
+          <span style="font-size:0.85rem; color:#64748b; font-weight: bold;">コレクション: スキン <span id="ownedSkinsCount">0</span>/20 | 背景 <span id="ownedBgsCount">0</span>/12</span>
+        </div>
+
+        <div class="type-selectors" style="gap: 20px; margin-bottom: 20px;">
+          <!-- Skin Gacha Card -->
+          <div class="type-selector-box" style="flex: 1; align-items: center; justify-content: center; padding: 24px; background: rgba(255,255,255,0.8);">
+            <div style="font-size: 3rem; margin-bottom: 10px; animation: floatAnim 3s ease-in-out infinite;">🎁</div>
+            <h2>SKIN GACHA</h2>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px; text-align:center;">全 20 種類<br>ブロックやぷよの着せ替えスキン</p>
+            <button id="pullSkinGachaBtn" class="type-start-btn" style="margin:0; width:100%; font-size:1.1rem; padding:12px;">100 🪙 で引く</button>
+          </div>
+
+          <!-- Bg Gacha Card -->
+          <div class="type-selector-box" style="flex: 1; align-items: center; justify-content: center; padding: 24px; background: rgba(255,255,255,0.8);">
+            <div style="font-size: 3rem; margin-bottom: 10px; animation: floatAnim 3s ease-in-out infinite; animation-delay: 1.5s;">🖼️</div>
+            <h2>BACKGROUND GACHA</h2>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px; text-align:center;">全 12 種類（シークレット含む）<br>ゲーム背景テーマスキン</p>
+            <button id="pullBgGachaBtn" class="type-start-btn" style="margin:0; width:100%; font-size:1.1rem; padding:12px;">100 🪙 で引く</button>
+          </div>
+        </div>
+
+        <div class="type-select-actions">
+          <button id="shopBackBtn" class="type-back-btn">BACK</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GACHA SHOW OVERLAY -->
+    <div id="gachaOverlay" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.92); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(8px);">
+      <div id="gachaAnimStage" style="width: 250px; height: 250px; display:flex; align-items:center; justify-content:center; position:relative;">
+        <div id="gachaCapsule" style="font-size: 8rem; cursor: pointer; transform-origin: center bottom;">🎁</div>
+      </div>
+      <div id="gachaResultCard" class="hidden" style="background:#fff; border-radius:24px; padding:30px; max-width:350px; width:90%; border:3px solid var(--border-color); text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
+        <div style="font-size: 0.8rem; font-weight:bold; letter-spacing:3px; color:var(--cyan); margin-bottom:8px;" id="gachaItemRarity">NEW ITEM GET!</div>
+        <h2 id="gachaItemName" style="margin:0 0 10px 0; font-size:1.6rem; color:var(--dark-text); font-weight:800;">ルビースキン</h2>
+        <p id="gachaItemDesc" style="margin:0 0 20px 0; font-size:0.85rem; color:#64748b;">ルビーのように輝く鉱石スキン</p>
+        <div id="gachaItemPreview" style="width:100%; height:80px; display:flex; align-items:center; justify-content:center; background:#f8fafc; border-radius:12px; margin-bottom:20px; border:1px solid #e2e8f0;">
+          <!-- block sample preview -->
+        </div>
+        <button id="gachaOkBtn" class="type-start-btn" style="margin:0; width:100%;">OK</button>
+      </div>
+    </div>
+
+    <!-- ONLINE LOBBY PANEL -->
+    <section id="onlineLobby" class="mode-select hidden">
+      <div class="mode-select-inner" style="max-width: 600px;">
+        <div class="mode-tagline"><span>◆</span><span>ONLINE P2P MULTIPLAYER</span><span>◆</span></div>
+        <h1 class="mode-title" data-text="ONLINE VS">ONLINE VS</h1>
+        
+        <!-- Tab buttons -->
+        <div class="lobby-tabs" style="display: flex; gap: 10px; width: 100%; margin-bottom: 20px; border-bottom: 1.5px solid rgba(255,255,255,0.15); padding-bottom: 10px;">
+          <button class="lobby-tab-btn active" data-tab="lobby" style="flex: 1; padding: 10px; background: none; border: none; color: #fff; font-weight: bold; font-size: 0.95rem; cursor: pointer;">LOBBY</button>
+          <button class="lobby-tab-btn" data-tab="rooms" style="flex: 1; padding: 10px; background: none; border: none; color: #aaa; font-weight: bold; font-size: 0.95rem; cursor: pointer;">PUBLIC ROOMS</button>
+          <button class="lobby-tab-btn" data-tab="friends" style="flex: 1; padding: 10px; background: none; border: none; color: #aaa; font-weight: bold; font-size: 0.95rem; cursor: pointer;">FRIENDS</button>
+        </div>
+
+        <!-- Lobby Tab Content -->
+        <div id="lobbyTabContent" class="lobby-tab-content">
+          <div class="type-selectors" style="flex-direction: column; gap: 20px;">
+            <div class="type-selector-box" style="width: 100%;">
+              <h2>1. CREATE ROOM (HOST)</h2>
+              <p style="font-size: 0.9rem; color: #a5f3fc; margin-bottom: 8px;">あなたの接続用ID（対戦相手に教えてください）:</p>
+              <div id="hostPeerIdDisplay" style="background: rgba(0,0,0,0.5); border: 2px solid #22e6ff; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 1.3rem; letter-spacing: 2px; text-align: center; color: #ff3ea5; font-weight: bold; text-shadow: 0 0 8px currentColor; margin-bottom: 12px;">
+                IDを取得中...
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,62,165,0.1); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,62,165,0.3);">
+                <input type="checkbox" id="publishRoomCheck" style="width:16px; height:16px; cursor:pointer;" />
+                <label for="publishRoomCheck" style="font-size:0.85rem; color:#fff; cursor:pointer;">公開ルーム一覧に登録する</label>
+                <input type="text" id="publishRoomNameInput" placeholder="ルーム名" style="flex:1; padding:4px 8px; background:rgba(0,0,0,0.4); border:1px solid #ff3ea5; border-radius:4px; color:#fff; font-size:0.85rem;" />
+              </div>
+            </div>
+
+            <div class="type-selector-box" style="width: 100%;">
+              <h2>2. JOIN ROOM (GUEST)</h2>
+              <div style="display: flex; gap: 10px; width: 100%;">
+                <input type="text" id="joinPeerIdInput" placeholder="相手のホストIDを入力" style="flex: 1; padding: 12px; background: rgba(0,0,0,0.4); border: 1.5px solid #ff3ea5; border-radius: 6px; color: #fff; font-family: monospace; font-size: 1.1rem; text-align: center;" />
+                <button id="onlineConnectBtn" class="type-start-btn" style="padding: 0 20px; font-size: 1rem; margin-top:0;">CONNECT</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rooms Tab Content -->
+        <div id="roomsTabContent" class="lobby-tab-content hidden" style="width: 100%;">
+          <div class="type-selector-box" style="width: 100%;">
+            <h2>ACTIVE PUBLIC ROOMS</h2>
+            <div id="publicRoomsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 5px; min-height: 100px;">
+              <div style="text-align: center; color: #aaa; padding: 20px 0;">公開ルームが見つかりません。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Friends Tab Content -->
+        <div id="friendsTabContent" class="lobby-tab-content hidden" style="width: 100%;">
+          <div class="type-selectors" style="flex-direction: column; gap: 20px;">
+            <div class="type-selector-box" style="width: 100%;">
+              <h2>ADD FRIEND</h2>
+              <div style="display: flex; gap: 10px; width: 100%;">
+                <input type="text" id="friendIdInput" placeholder="フレンドの接続IDを入力" style="flex: 1; padding: 10px; background: rgba(0,0,0,0.4); border: 1.5px solid #ff3ea5; border-radius: 6px; color: #fff; font-family: monospace; font-size: 0.95rem; text-align: center;" />
+                <button id="addFriendBtn" class="type-start-btn" style="padding: 0 20px; font-size: 0.9rem; margin-top:0;">ADD</button>
+              </div>
+            </div>
+
+            <div class="type-selector-box" style="width: 100%;">
+              <h2>FRIEND LIST</h2>
+              <div id="friendsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding: 5px; min-height: 80px;">
+                <div style="text-align: center; color: #aaa; padding: 15px 0;">フレンドが登録されていません。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="onlineStatus" style="margin-top: 15px; font-size: 0.95rem; color: #22e6ff; font-weight: bold; text-align: center; text-shadow: 0 0 4px currentColor;">
+          接続準備完了。
+        </div>
+
+        <div class="type-select-actions" style="margin-top: 25px;">
+          <button id="onlineBackBtn" class="type-back-btn">BACK</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TYPE SELECT (hidden by default) -->
+    <section id="typeSelect" class="mode-select hidden">
+      <div class="mode-select-inner">
+        <div class="mode-tagline"><span>◆</span><span>CHOOSE YOUR PLAYSTYLE</span><span>◆</span></div>
+        <h1 class="mode-title" data-text="GAME TYPE">GAME TYPE</h1>
+        
+        <div class="type-selectors">
+          <!-- Player Selector -->
+          <div class="type-selector-box">
+            <h2>PLAYER 1</h2>
+            <div class="type-options" id="playerTypeOptions">
+              <button class="type-opt-btn active" data-type="tetris">
+                <span class="type-opt-name">TETRIS</span>
+                <span class="type-opt-desc">ラインを消す伝統のパズル</span>
+              </button>
+              <button class="type-opt-btn" data-type="puyo">
+                <span class="type-opt-name">PUYO PUYO</span>
+                <span class="type-opt-desc">4つつなげて連鎖を狙え</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- CPU Selector (only shown if mode is VS CPU) -->
+          <div class="type-selector-box" id="cpuTypeBox">
+            <h2>CPU (OPPONENT)</h2>
+            <div class="type-options" id="cpuTypeOptions">
+              <button class="type-opt-btn" data-type="tetris">
+                <span class="type-opt-name">TETRIS</span>
+                <span class="type-opt-desc">隙のない積み上げ</span>
+              </button>
+              <button class="type-opt-btn active" data-type="puyo">
+                <span class="type-opt-name">PUYO PUYO</span>
+                <span class="type-opt-desc">怒涛の連鎖を繰り出す</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="type-select-actions">
+          <button id="typeStartBtn" class="type-start-btn">DECIDE & START</button>
+          <button id="typeBackBtn" class="type-back-btn">BACK</button>
         </div>
       </div>
     </section>
@@ -116,6 +318,7 @@
       </div>
 
       <div class="board-wrap">
+        <div class="warning-queue" id="warningQueue"></div>
         <div class="board-border">
           <canvas id="board" width="300" height="600"></canvas>
         </div>
@@ -173,6 +376,7 @@
       </div>
 
       <div class="board-wrap">
+        <div class="warning-queue" id="warningQueue2"></div>
         <div class="board-border">
           <canvas id="board2" width="300" height="600"></canvas>
         </div>
@@ -205,6 +409,7 @@
 
     <!-- FX LAYER for full-screen flashes -->
     <div id="fxLayer" class="fx-layer"></div>
+    <div id="cutInLayer" class="cut-in-layer"></div>
 
     <!-- SETTINGS MODAL -->
     <div id="settingsModal" class="modal hidden" aria-hidden="true">
@@ -308,7 +513,27 @@
           </section>
 
           <section class="settings-section">
+            <h3 class="section-title"><span class="section-bar"></span>CUSTOMIZE</h3>
+            <div class="setting-row select-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <div class="setting-label"><span class="setting-name">BLOCK SKIN</span><span class="setting-hint">ブロックやぷよの着せ替え</span></div>
+              <select id="skinSelect" style="background:#4a0a52; border:1px solid #ff3ea5; color:#fff; padding:6px; border-radius:4px; font-family:inherit; min-width:140px;">
+                <option value="classic">CLASSIC (標準)</option>
+              </select>
+            </div>
+            <div class="setting-row select-row" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="setting-label"><span class="setting-name">BACKGROUND</span><span class="setting-hint">ゲーム背景テーマの変更</span></div>
+              <select id="bgSelect" style="background:#4a0a52; border:1px solid #ff3ea5; color:#fff; padding:6px; border-radius:4px; font-family:inherit; min-width:140px;">
+                <option value="default">DEFAULT (宇宙)</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="settings-section">
             <h3 class="section-title"><span class="section-bar"></span>EFFECTS &amp; QOL</h3>
+            <div class="setting-row toggle-row">
+              <div class="setting-label"><span class="setting-name">Graphic Mode</span><span class="setting-hint">3D表示(重い) / 2D表示(軽量)</span></div>
+              <button class="toggle" data-toggle-display="renderMode" aria-pressed="false"><span class="toggle-knob"></span><span class="toggle-on">3D</span><span class="toggle-off">2D</span></button>
+            </div>
             <div class="setting-row toggle-row">
               <div class="setting-label"><span class="setting-name">Ghost Piece</span><span class="setting-hint">着地予測の表示</span></div>
               <button class="toggle" data-toggle-display="ghost" aria-pressed="true"><span class="toggle-knob"></span><span class="toggle-on">ON</span><span class="toggle-off">OFF</span></button>
@@ -359,6 +584,10 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="audio.js?v=6"></script>
   <script src="game.js?v=6"></script>
 </body>

@@ -12,7 +12,183 @@
   // winnable — singles now send 1 row so even novice clears build pressure.
   const GARBAGE_BY_LINES = [0, 1, 2, 4, 8];
 
-  const $ = (id) => document.getElementById(id);
+  const $ = (id) => document.getElementById(id);  // ---------- CUSTOMIZATION SYSTEM & PALETTES (20 Skins & 10 Backgrounds) ----------
+  const SKINS = {
+    classic: { name: 'CLASSIC (標準)', desc: '普通のブロック' },
+    neon: { name: 'NEON (発光)', desc: 'サイバーで鮮やかなブロック' },
+    pastel: { name: 'PASTEL (パステル)', desc: '柔らかいお菓子のような色合い' },
+    retro: { name: 'RETRO (レトロ)', desc: '懐かしのファミコン風ドット' },
+    monochrome: { name: 'MONO (モノクロ)', desc: '白黒グレーのシックなパレット' },
+    gold: { name: 'GOLD (ゴールド)', desc: '豪華絢爛な黄金色の輝き' },
+    ruby: { name: 'RUBY (ルビー)', desc: '情熱的なルビーレッド' },
+    sapphire: { name: 'SAPPHIRE (サファイア)', desc: '深海のようなロイヤルブルー' },
+    emerald: { name: 'EMERALD (エメラルド)', desc: '神秘的なエメラルドグリーン' },
+    topaz: { name: 'TOPAZ (トパーズ)', desc: '温かみのあるトパーズオレンジ' },
+    amethyst: { name: 'AMETHYST (アメジスト)', desc: '高貴なアメジストパープル' },
+    mint: { name: 'MINT (ミントチョコ)', desc: '爽やかなミント＆ブラウンチョコ' },
+    cherry: { name: 'CHERRY (サクラ)', desc: '華やかなチェリーピンク' },
+    banana: { name: 'BANANA (バナナ)', desc: 'ポップなトロピカルバナナイエロー' },
+    soda: { name: 'SODA (ラムネ)', desc: 'シュワッとするラムネブルー' },
+    toy: { name: 'TOY (おもちゃ)', desc: '子供部屋のようなカラフルカラー' },
+    chalk: { name: 'CHALK (チョーク)', desc: '黒板に描いたようなマット色' },
+    metal: { name: 'METAL (鉄鋼)', desc: '冷たく重厚なシルバーメタル' },
+    wood: { name: 'WOOD (木目)', desc: '温かみのあるナチュラルブラウン' },
+    glass: { name: 'GLASS (硝子)', desc: '透明感のある涼しげなクリアカラー' }
+  };
+
+  const BACKGROUNDS = {
+    default: { name: 'DEFAULT (宇宙)', desc: '深宇宙のグラデーション' },
+    sky: { name: 'SKY BLUE (青空)', desc: '爽やかで晴れ渡るスカイブルー' },
+    pink: { name: 'SWEET PINK (ピンク)', desc: '甘くて可愛いファンシーピンク' },
+    mint: { name: 'MINT GREEN (ミント)', desc: 'シンプルで落ち着くミントグリーン' },
+    lavender: { name: 'LAVENDER (スミレ)', desc: '可憐なラベンダーパープル' },
+    sunset: { name: 'SUNSET (夕焼け)', desc: '黄金色に染まる夕焼け空' },
+    night: { name: 'DARK NIGHT (常闇)', desc: '静寂に包まれたミッドナイトブルー' },
+    snow: { name: 'SNOW WHITE (純白)', desc: '降り積もる新雪のようなクリーンホワイト' },
+    golddust: { name: 'GOLD DUST (砂金)', desc: 'ゴージャスに光り輝くゴールドダスト' },
+    forest: { name: 'DEEP FOREST (深緑)', desc: '自然を感じる深い森のグリーン' },
+    ghoul: { name: 'SECRET (喰種)', desc: '赤と黒の狂気的な隻眼の少年' },
+    kaiju: { name: 'SECRET (怪獣)', desc: '闇を照らす脅威の怪獣8号' }
+  };
+
+  // Helper to generate single-color theme pallete
+  function makeThemeColors(base, light, dark, puyoBase, puyoLight, puyoDark) {
+    const c = {};
+    const t = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'G'];
+    t.forEach(k => {
+      c[k] = { base: k === 'G' ? '#6b7280' : base, light: k === 'G' ? '#9ca3af' : light, dark: k === 'G' ? '#374151' : dark };
+    });
+    const pt = ['R', 'B', 'G_puyo', 'Y', 'P', 'O_puyo'];
+    pt.forEach(k => {
+      c[k] = { base: k === 'O_puyo' ? '#9ca3af' : puyoBase, light: k === 'O_puyo' ? '#f3f4f6' : puyoLight, dark: k === 'O_puyo' ? '#4b5563' : puyoDark };
+    });
+    return c;
+  }
+
+  const SKIN_COLORS = {
+    classic: {
+      I: { base:'#22d3ee', light:'#a5f3fc', dark:'#0e7490' },
+      J: { base:'#3b82f6', light:'#93c5fd', dark:'#1e3a8a' },
+      L: { base:'#f97316', light:'#fdba74', dark:'#9a3412' },
+      O: { base:'#facc15', light:'#fde68a', dark:'#a16207' },
+      S: { base:'#22c55e', light:'#86efac', dark:'#166534' },
+      T: { base:'#a855f7', light:'#d8b4fe', dark:'#6b21a8' },
+      Z: { base:'#ef4444', light:'#fca5a5', dark:'#7f1d1d' },
+      G: { base:'#6b7280', light:'#9ca3af', dark:'#374151' },
+      R: { base:'#ef4444', light:'#fca5a5', dark:'#b91c1c' },
+      B: { base:'#3b82f6', light:'#93c5fd', dark:'#1d4ed8' },
+      G_puyo: { base:'#22c55e', light:'#86efac', dark:'#15803d' },
+      Y: { base:'#eab308', light:'#fef08a', dark:'#a16207' },
+      P: { base:'#a855f7', light:'#d8b4fe', dark:'#7e22ce' },
+      O_puyo: { base:'#9ca3af', light:'#f3f4f6', dark:'#4b5563' }
+    },
+    neon: {
+      I: { base:'#00ffff', light:'#d8ffff', dark:'#008b8b' },
+      J: { base:'#0000ff', light:'#b0b0ff', dark:'#00008b' },
+      L: { base:'#ffaa00', light:'#ffeed0', dark:'#aa5500' },
+      O: { base:'#ffff00', light:'#ffffe0', dark:'#8b8b00' },
+      S: { base:'#00ff00', light:'#d0ffd0', dark:'#008b00' },
+      T: { base:'#ff00ff', light:'#ffd0ff', dark:'#8b008b' },
+      Z: { base:'#ff0000', light:'#ffd0d0', dark:'#8b0000' },
+      G: { base:'#888888', light:'#dddddd', dark:'#444444' },
+      R: { base:'#ff3333', light:'#ff9999', dark:'#aa0000' },
+      B: { base:'#3333ff', light:'#9999ff', dark:'#0000aa' },
+      G_puyo: { base:'#33ff33', light:'#99ff99', dark:'#00aa00' },
+      Y: { base:'#ffff33', light:'#ffff99', dark:'#aaaa00' },
+      P: { base:'#ff33ff', light:'#ff99ff', dark:'#aa00aa' },
+      O_puyo: { base:'#888888', light:'#cccccc', dark:'#444444' }
+    },
+    pastel: {
+      I: { base:'#7dd3fc', light:'#e0f2fe', dark:'#0369a1' },
+      J: { base:'#93c5fd', light:'#eff6ff', dark:'#1d4ed8' },
+      L: { base:'#fdba74', light:'#fff7ed', dark:'#c2410c' },
+      O: { base:'#fef08a', light:'#fefce8', dark:'#a16207' },
+      S: { base:'#86efac', light:'#f0fdf4', dark:'#15803d' },
+      T: { base:'#d8b4fe', light:'#faf5ff', dark:'#7e22ce' },
+      Z: { base:'#fca5a5', light:'#fef2f2', dark:'#b91c1c' },
+      G: { base:'#d1d5db', light:'#f3f4f6', dark:'#4b5563' },
+      R: { base:'#fca5a5', light:'#fef2f2', dark:'#b91c1c' },
+      B: { base:'#93c5fd', light:'#eff6ff', dark:'#1d4ed8' },
+      G_puyo: { base:'#86efac', light:'#f0fdf4', dark:'#15803d' },
+      Y: { base:'#fef08a', light:'#fefce8', dark:'#a16207' },
+      P: { base:'#d8b4fe', light:'#faf5ff', dark:'#7e22ce' },
+      O_puyo: { base:'#d1d5db', light:'#f3f4f6', dark:'#4b5563' }
+    },
+    retro: {
+      I: { base:'#ff4500', light:'#ff7f50', dark:'#8b0000' },
+      J: { base:'#1e90ff', light:'#87cefa', dark:'#00008b' },
+      L: { base:'#ff8c00', light:'#ffa500', dark:'#8b4500' },
+      O: { base:'#ffd700', light:'#fff8dc', dark:'#b8860b' },
+      S: { base:'#32cd32', light:'#98fb98', dark:'#006400' },
+      T: { base:'#ba55d3', light:'#dda0dd', dark:'#4b0082' },
+      Z: { base:'#dc143c', light:'#ff69b4', dark:'#8b0000' },
+      G: { base:'#778899', light:'#b0c4de', dark:'#2f4f4f' },
+      R: { base:'#dc143c', light:'#ff69b4', dark:'#8b0000' },
+      B: { base:'#1e90ff', light:'#87cefa', dark:'#00008b' },
+      G_puyo: { base:'#32cd32', light:'#98fb98', dark:'#006400' },
+      Y: { base:'#ffd700', light:'#fff8dc', dark:'#b8860b' },
+      P: { base:'#ba55d3', light:'#dda0dd', dark:'#4b0082' },
+      O_puyo: { base:'#778899', light:'#b0c4de', dark:'#2f4f4f' }
+    },
+    monochrome: makeThemeColors('#6b7280', '#e5e7eb', '#374151', '#9ca3af', '#f3f4f6', '#4b5563'),
+    gold: makeThemeColors('#fbbf24', '#fef3c7', '#78350f', '#fbbf24', '#fef3c7', '#78350f'),
+    ruby: makeThemeColors('#ef4444', '#fee2e2', '#991b1b', '#ef4444', '#fee2e2', '#991b1b'),
+    sapphire: makeThemeColors('#2563eb', '#dbeafe', '#1e40af', '#2563eb', '#dbeafe', '#1e40af'),
+    emerald: makeThemeColors('#059669', '#d1fae5', '#065f46', '#059669', '#d1fae5', '#065f46'),
+    topaz: makeThemeColors('#d97706', '#fef3c7', '#78350f', '#d97706', '#fef3c7', '#78350f'),
+    amethyst: makeThemeColors('#7c3aed', '#ede9fe', '#5b21b6', '#7c3aed', '#ede9fe', '#5b21b6'),
+    mint: makeThemeColors('#a7f3d0', '#f0fdf4', '#064e3b', '#78350f', '#fef3c7', '#451a03'),
+    cherry: makeThemeColors('#ec4899', '#fce7f3', '#9d174d', '#ec4899', '#fce7f3', '#9d174d'),
+    banana: makeThemeColors('#eab308', '#fef9c3', '#854d0e', '#eab308', '#fef9c3', '#854d0e'),
+    soda: makeThemeColors('#0ea5e9', '#e0f2fe', '#075985', '#0ea5e9', '#e0f2fe', '#075985'),
+    toy: {
+      I: { base:'#ff0055', light:'#ff88aa', dark:'#990033' },
+      J: { base:'#00aaff', light:'#88ddff', dark:'#005599' },
+      L: { base:'#ffaa00', light:'#ffd588', dark:'#996600' },
+      O: { base:'#aaff00', light:'#ddff88', dark:'#559900' },
+      S: { base:'#00ffaa', light:'#88ffdd', dark:'#009955' },
+      T: { base:'#aa00ff', light:'#dd88ff', dark:'#550099' },
+      Z: { base:'#ff5500', light:'#ffaa88', dark:'#993300' },
+      G: { base:'#88aaff', light:'#ccddee', dark:'#445599' },
+      R: { base:'#ff0055', light:'#ff88aa', dark:'#990033' },
+      B: { base:'#00aaff', light:'#88ddff', dark:'#005599' },
+      G_puyo: { base:'#00ffaa', light:'#88ffdd', dark:'#009955' },
+      Y: { base:'#ffaa00', light:'#ffd588', dark:'#996600' },
+      P: { base:'#aa00ff', light:'#dd88ff', dark:'#550099' },
+      O_puyo: { base:'#88aaff', light:'#ccddee', dark:'#445599' }
+    },
+    chalk: makeThemeColors('#94a3b8', '#cbd5e1', '#475569', '#cbd5e1', '#f1f5f9', '#64748b'),
+    metal: makeThemeColors('#94a3b8', '#cbd5e1', '#334155', '#475569', '#94a3b8', '#1e293b'),
+    wood: makeThemeColors('#854d0e', '#fef9c3', '#451a03', '#a16207', '#fef08a', '#78350f'),
+    glass: makeThemeColors('#e2e8f0', '#ffffff', '#cbd5e1', '#ffffff', '#ffffff', '#e2e8f0')
+  };c', light:'#f0fdf4', dark:'#15803d' },
+      Y: { base:'#fef08a', light:'#fefce8', dark:'#a16207' },
+      P: { base:'#d8b4fe', light:'#faf5ff', dark:'#7e22ce' },
+      O_puyo: { base:'#d1d5db', light:'#f3f4f6', dark:'#4b5563' }
+    },
+    retro: {
+      I: { base:'#ff4500', light:'#ff7f50', dark:'#8b0000' },
+      J: { base:'#1e90ff', light:'#87cefa', dark:'#00008b' },
+      L: { base:'#ff8c00', light:'#ffa500', dark:'#8b4500' },
+      O: { base:'#ffd700', light:'#fff8dc', dark:'#b8860b' },
+      S: { base:'#32cd32', light:'#98fb98', dark:'#006400' },
+      T: { base:'#ba55d3', light:'#dda0dd', dark:'#4b0082' },
+      Z: { base:'#dc143c', light:'#ff69b4', dark:'#8b0000' },
+      G: { base:'#778899', light:'#b0c4de', dark:'#2f4f4f' },
+      R: { base:'#dc143c', light:'#ff69b4', dark:'#8b0000' },
+      B: { base:'#1e90ff', light:'#87cefa', dark:'#00008b' },
+      G_puyo: { base:'#32cd32', light:'#98fb98', dark:'#006400' },
+      Y: { base:'#ffd700', light:'#fff8dc', dark:'#b8860b' },
+      P: { base:'#ba55d3', light:'#dda0dd', dark:'#4b0082' },
+      O_puyo: { base:'#778899', light:'#b0c4de', dark:'#2f4f4f' }
+    }
+  };
+
+  let userCoins = parseInt(localStorage.getItem('puyotetris_coins') || '0');
+  let ownedSkins = JSON.parse(localStorage.getItem('puyotetris_owned_skins') || '["classic"]');
+  let ownedBgs = JSON.parse(localStorage.getItem('puyotetris_owned_bgs') || '["default"]');
+  let activeSkin = localStorage.getItem('puyotetris_active_skin') || 'classic';
+  let activeBg = localStorage.getItem('puyotetris_active_bg') || 'default';
 
   // ---------- SHAPES & COLORS ----------
   const SHAPES = {
@@ -61,7 +237,7 @@
     },
     handling: { das:150, arr:40, sdf:20, gravity:1000, lockDelay:500 },
     audio: { bgm:true, se:true, bgmVolume:32, seVolume:55 },
-    display: { ghost:true, grid:true, glow:true, stars:true, particles:true, shake:true, popups:true, flash:true, impact:true, vignette:true },
+    display: { renderMode:false, ghost:true, grid:true, glow:true, stars:true, particles:true, shake:true, popups:true, flash:true, impact:true, vignette:true },
     cpu: { difficulty:'normal', autoRestart:true, showTarget:true },
     gamepadBindings: { moveLeft:14, moveRight:15, softDrop:13, hardDrop:5, rotateCW:0, rotateCCW:1, rotate180:3, hold:2, pause:9, reset:8 },
   };
@@ -206,9 +382,178 @@
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
 
+  // ---------- PUYO PUYO DEFINITIONS ----------
+  const PUYO_COLORS = {
+    R: { base:'#ef4444', light:'#fca5a5', dark:'#b91c1c' }, // Red
+    B: { base:'#3b82f6', light:'#93c5fd', dark:'#1d4ed8' }, // Blue
+    G: { base:'#22c55e', light:'#86efac', dark:'#15803d' }, // Green
+    Y: { base:'#eab308', light:'#fef08a', dark:'#a16207' }, // Yellow
+    P: { base:'#a855f7', light:'#d8b4fe', dark:'#7e22ce' }, // Purple
+    O: { base:'#9ca3af', light:'#f3f4f6', dark:'#4b5563' }, // Garbage grey
+  };
+  const PUYO_TYPES = ['R', 'B', 'G', 'Y', 'P'];
+
+  function drawPuyo(c, x, y, size, type, grid) {
+    const px = x * size, py = y * size;
+    const colors = PUYO_COLORS[type];
+    if (!colors) return;
+    
+    // Connect check
+    let u = y > 0 && grid[y-1][x] === type;
+    let d = y < ROWS - 1 && grid[y+1][x] === type;
+    let l = x > 0 && grid[y][x-1] === type;
+    let r = x < COLS - 1 && grid[y][x+1] === type;
+    
+    if (type === 'O') { u = d = l = r = false; } // Garbage Puyo doesn't connect
+
+    const radius = size * 0.46;
+    const cx = px + size / 2;
+    const cy = py + size / 2;
+
+    c.save();
+    c.fillStyle = colors.base;
+    
+    const rT = u ? 0 : radius;
+    const rB = d ? 0 : radius;
+    const rL = l ? 0 : radius;
+    const rR = r ? 0 : radius;
+    
+    c.beginPath();
+    c.moveTo(cx, py + (u ? 0 : 2));
+    c.arcTo(px + size - (r ? 0 : 2), py + (u ? 0 : 2), px + size - (r ? 0 : 2), cy, rR);
+    c.arcTo(px + size - (r ? 0 : 2), py + size - (d ? 0 : 2), cx, py + size - (d ? 0 : 2), rB);
+    c.arcTo(px + (l ? 0 : 2), py + size - (d ? 0 : 2), px + (l ? 0 : 2), cy, rL);
+    c.arcTo(px + (l ? 0 : 2), py + (u ? 0 : 2), cx, py + (u ? 0 : 2), rT);
+    c.closePath();
+    c.fill();
+
+    c.strokeStyle = colors.dark;
+    c.lineWidth = 1.8;
+    c.stroke();
+
+    // Gloss
+    c.fillStyle = colors.light;
+    c.beginPath();
+    c.arc(cx - radius * 0.3, cy - radius * 0.3, radius * 0.25, 0, Math.PI * 2);
+    c.fill();
+
+    // Eyes
+    if (type === 'O') {
+      c.strokeStyle = '#374151';
+      c.lineWidth = 2.2;
+      // Left eye X
+      c.beginPath(); c.moveTo(cx - 6, cy - 3); c.lineTo(cx - 2, cy + 1); c.moveTo(cx - 2, cy - 3); c.lineTo(cx - 6, cy + 1); c.stroke();
+      // Right eye X
+      c.beginPath(); c.moveTo(cx + 2, cy - 3); c.lineTo(cx + 6, cy + 1); c.moveTo(cx + 6, cy - 3); c.lineTo(cx + 2, cy + 1); c.stroke();
+    } else {
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.arc(cx - 4, cy, 3.5, 0, Math.PI * 2); c.arc(cx + 4, cy, 3.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#000000';
+      c.beginPath(); c.arc(cx - 4, cy + 0.5, 1.8, 0, Math.PI * 2); c.arc(cx + 4, cy + 0.5, 1.8, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.arc(cx - 4.5, cy, 0.6, 0, Math.PI * 2); c.arc(cx + 3.5, cy, 0.6, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+  }
+
+  function updateWarningQueue(b) {
+    const queueEl = b.id === 'player' ? $('warningQueue') : $('warningQueue2');
+    if (!queueEl) return;
+    queueEl.innerHTML = '';
+    let g = b.pendingGarbage;
+    if (g <= 0) return;
+    
+    // Comet: 720, Moon: 360, Star: 180, Rock: 30, Big: 6, Small: 1
+    const icons = [
+      { name: 'comet', val: 720, char: '☄️' },
+      { name: 'moon', val: 360, char: '🌙' },
+      { name: 'star', val: 180, char: '⭐' },
+      { name: 'rock', val: 30, char: '🪨' },
+      { name: 'big', val: 6, char: '🔴' },
+      { name: 'small', val: 1, char: '⚫' }
+    ];
+    
+    for (const icon of icons) {
+      const count = Math.floor(g / icon.val);
+      g %= icon.val;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = `warning-icon warning-${icon.name}`;
+        el.textContent = icon.char;
+        queueEl.appendChild(el);
+        if (queueEl.children.length >= 10) break;
+      }
+      if (queueEl.children.length >= 10) break;
+    }
+  }
+
+  function triggerCutIn(text) {
+    if (!settings.display.popups) return;
+    const layer = $('cutInLayer');
+    if (!layer) return;
+    layer.innerHTML = '';
+    const cutIn = document.createElement('div');
+    cutIn.className = 'cut-in';
+    const cutInText = document.createElement('div');
+    cutInText.className = 'cut-in-text';
+    cutInText.textContent = text;
+    cutIn.appendChild(cutInText);
+    layer.appendChild(cutIn);
+    setTimeout(() => cutIn.remove(), 1000);
+  }
+
+  function init3D(b) {
+    if (b.canvas3D) return;
+    
+    const c3d = document.createElement('canvas');
+    c3d.className = b.canvas.className + ' canvas-3d';
+    c3d.width = b.canvas.width;
+    c3d.height = b.canvas.height;
+    b.canvas.parentNode.insertBefore(c3d, b.canvas);
+    b.canvas3D = c3d;
+
+    b.scene = new THREE.Scene();
+    
+    b.renderer = new THREE.WebGLRenderer({ canvas: c3d, antialias: true, alpha: true });
+    b.renderer.setSize(c3d.width, c3d.height);
+    b.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    b.renderer.shadowMap.enabled = true;
+
+    b.camera = new THREE.PerspectiveCamera(45, c3d.width / c3d.height, 0.1, 1000);
+    b.camera.position.set(4.5, 9.5, 23.5);
+    b.camera.lookAt(4.5, 9.5, 0);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.65);
+    b.scene.add(ambient);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 25, 12);
+    dirLight.castShadow = true;
+    b.scene.add(dirLight);
+
+    const gridHelper = new THREE.GridHelper(20, 20, 0xff3ea5, 0x22e6ff);
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.set(4.5, 9.5, -0.5);
+    gridHelper.material.opacity = 0.12;
+    gridHelper.material.transparent = true;
+    b.scene.add(gridHelper);
+
+    const borderGeom = new THREE.BoxGeometry(10.2, 20.2, 0.2);
+    const borderMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0014,
+      roughness: 0.4,
+      metalness: 0.9,
+      transparent: true,
+      opacity: 0.6
+    });
+    const borderMesh = new THREE.Mesh(borderGeom, borderMat);
+    borderMesh.position.set(4.5, 9.5, -0.6);
+    b.scene.add(borderMesh);
+  }
+
   // ---------- BOARD ----------
   function createBoard(cfg) {
-    return {
+    const b = {
       id: cfg.id,
       isCPU: !!cfg.isCPU,
       canvas: cfg.canvas,
@@ -252,11 +597,33 @@
       cpuTarget: null,
       cpuActionTimer: 0,
       opponent: null,
+      type: 'tetris', // 'tetris' or 'puyo'
+      puyoChain: 0,
+      
+      // Three.js instances
+      scene: null,
+      camera: null,
+      renderer: null,
+      canvas3D: null,
     };
+    
+    if (settings.display.renderMode) {
+      init3D(b);
+      b.canvas.style.display = 'none';
+      if (b.canvas3D) b.canvas3D.style.display = 'block';
+    } else {
+      b.canvas.style.display = 'block';
+    }
+    return b;
   }
 
   function createGrid() { return Array.from({ length: ROWS }, () => Array(COLS).fill(null)); }
   function nextFromBag(b) {
+    if (b.type === 'puyo') {
+      const p1 = PUYO_TYPES[Math.floor(Math.random() * PUYO_TYPES.length)];
+      const p2 = PUYO_TYPES[Math.floor(Math.random() * PUYO_TYPES.length)];
+      return { p1, p2 };
+    }
     if (b.bag.length === 0) {
       b.bag = TYPES.slice();
       for (let i = b.bag.length - 1; i > 0; i--) {
@@ -267,42 +634,89 @@
     return b.bag.pop();
   }
   function refillQueue(b) { while (b.queue.length < NEXT_QUEUE + 1) b.queue.push(nextFromBag(b)); }
-  function makePiece(type) {
+  function makePiece(b, type) {
+    if (b.type === 'puyo') {
+      return { type: 'puyo', p1: type.p1, p2: type.p2, x: 4, y: 1, rotation: 0, rotateCount: 0 };
+    }
     const matrix = SHAPES[type].map(r => r.slice());
     return { type, matrix, x: Math.floor((COLS - matrix[0].length) / 2), y: type === 'I' ? -1 : 0, rotation: 0, rotateCount: 0 };
+  }
+  function puyoCollides(x, y, rotation, grid) {
+    if (x < 0 || x >= COLS || y >= ROWS) return true;
+    if (y >= 0 && grid[y][x]) return true;
+    let p2x = x, p2y = y;
+    if (rotation === 0) p2y--;
+    else if (rotation === 1) p2x++;
+    else if (rotation === 2) p2y++;
+    else if (rotation === 3) p2x--;
+    if (p2x < 0 || p2x >= COLS || p2y >= ROWS) return true;
+    if (p2y >= 0 && grid[p2y][p2x]) return true;
+    return false;
   }
   function spawn(b, typeOverride) {
     refillQueue(b);
     const type = typeOverride ?? b.queue.shift();
     refillQueue(b);
-    // Apply any pending garbage before the piece appears
     if (b.pendingGarbage > 0) applyPendingGarbage(b);
-    b.current = makePiece(type);
+    b.current = makePiece(b, type);
     b.holdLocked = false;
     if (b.holdPanel) b.holdPanel.classList.remove('locked');
     b.lockDelay.active = false; b.lockDelay.timer = 0; b.lockDelay.resets = 0;
     b.lastActionWasRotate = false;
     b.cpuTarget = null; b.cpuActionTimer = 0;
-    if (collides(b.current, b.grid)) {
+    
+    const collided = b.type === 'puyo' 
+      ? puyoCollides(b.current.x, b.current.y, b.current.rotation, b.grid)
+      : collides(b.current, b.grid);
+      
+    if (collided) {
       if (mode === 'infinity') {
         infinityRescue(b);
-        b.current = makePiece(type);
-        if (collides(b.current, b.grid)) b.grid = createGrid();
+        b.current = makePiece(b, type);
+        const colVal = b.type === 'puyo'
+          ? puyoCollides(b.current.x, b.current.y, b.current.rotation, b.grid)
+          : collides(b.current, b.grid);
+        if (colVal) b.grid = createGrid();
       } else if (mode === 'cpu') {
-        // VS mode top-out
         b.gameOver = true;
         showOverlay(b, b.isCPU ? 'YOU WIN' : 'CPU WINS', 'Press R to rematch', b.isCPU ? 'win' : 'lose');
-        // notify opponent side too
         if (b.opponent && !b.opponent.gameOver) {
           showOverlay(b.opponent, b.isCPU ? 'YOU WIN' : 'CPU WINS', 'Press R to rematch', b.isCPU ? 'win' : 'lose');
         }
         window.audio.stopBGM();
         window.audio.playSE(b.isCPU ? 'tetris' : 'gameOver');
+        
+        // Reward coins
+        const coinsGained = Math.floor(playerBoard.score / 100);
+        userCoins += coinsGained;
+        localStorage.setItem('puyotetris_coins', userCoins);
+        spawnPopup(playerBoard, `+${coinsGained} COINS`, 'popup-points');
+      } else if (mode === 'online') {
+        b.gameOver = true;
+        if (p2pConn && p2pConn.open) {
+          p2pConn.send({ type: 'state', gameOver: true, boardType: playerBoard.type, grid: playerBoard.grid, score: playerBoard.score });
+        }
+        showOverlay(playerBoard, 'YOU LOSE', 'Press R to rematch', 'lose');
+        if (b.opponent) showOverlay(b.opponent, 'YOU WIN', 'Opponent topped out', 'win');
+        window.audio.stopBGM();
+        window.audio.playSE('gameOver');
+
+        // Reward coins
+        const coinsGained = Math.floor(playerBoard.score / 100);
+        userCoins += coinsGained;
+        localStorage.setItem('puyotetris_coins', userCoins);
+        spawnPopup(playerBoard, `+${coinsGained} COINS`, 'popup-points');
       } else {
         b.gameOver = true;
         showOverlay(b, 'GAME OVER', 'Press R to restart');
         window.audio.stopBGM();
         window.audio.playSE('gameOver');
+
+        // Reward coins
+        const coinsGained = Math.floor(playerBoard.score / 100);
+        userCoins += coinsGained;
+        localStorage.setItem('puyotetris_coins', userCoins);
+        spawnPopup(playerBoard, `+${coinsGained} COINS`, 'popup-points');
       }
     }
     drawNext(b);
@@ -351,6 +765,34 @@
   };
   function tryRotate(b, dir) {
     if (!b.current || b.gameOver || paused || b.flashing) return false;
+    if (b.type === 'puyo') {
+      const fromRot = b.current.rotation || 0;
+      const toRot = (fromRot + (dir > 0 ? 1 : 3)) % 4;
+      // Kick: try current pos, then left, then right
+      const tries = [[0, 0], [-1, 0], [1, 0]];
+      // If we are rotating vertical -> vertical in tight space, try quickturn
+      for (const [kx, ky] of tries) {
+        if (!puyoCollides(b.current.x + kx, b.current.y + ky, toRot, b.grid)) {
+          b.current.x += kx;
+          b.current.y += ky;
+          b.current.rotation = toRot;
+          if (!b.isCPU) window.audio.playSE('puyoRotate');
+          consumeLockReset(b);
+          return true;
+        }
+      }
+      // Quickturn (180 degree flip in narrow vertical channel)
+      const oppositeRot = (fromRot + 2) % 4;
+      if (!puyoCollides(b.current.x, b.current.y, oppositeRot, b.grid)) {
+        b.current.rotation = oppositeRot;
+        // Swap colors for intuitive visual flip
+        const tmp = b.current.p1; b.current.p1 = b.current.p2; b.current.p2 = tmp;
+        if (!b.isCPU) window.audio.playSE('puyoRotate');
+        consumeLockReset(b);
+        return true;
+      }
+      return false;
+    }
     if (b.current.type === 'O') return false; // O piece: no visual rotation
     const rotated = rotateMatrix(b.current.matrix, dir);
     const fromRot = b.current.rotation || 0;
@@ -376,12 +818,29 @@
   }
   function move(b, dx) {
     if (!b.current || b.gameOver || paused || b.flashing) return false;
+    if (b.type === 'puyo') {
+      if (!puyoCollides(b.current.x + dx, b.current.y, b.current.rotation, b.grid)) {
+        b.current.x += dx;
+        consumeLockReset(b);
+        if (!b.isCPU) window.audio.playSE('puyoMove');
+        return true;
+      }
+      return false;
+    }
     const test = { ...b.current, x: b.current.x + dx };
-    if (!collides(test, b.grid)) { b.current = test; b.lastActionWasRotate = false; consumeLockReset(b); return true; }
+    if (!collides(test, b.grid)) { b.current = test; b.lastActionWasRotate = false; consumeLockReset(b); if (!b.isCPU) window.audio.playSE('move'); return true; }
     return false;
   }
   function stepDown(b, userTriggered) {
     if (!b.current || b.gameOver || paused || b.flashing) return false;
+    if (b.type === 'puyo') {
+      if (!puyoCollides(b.current.x, b.current.y + 1, b.current.rotation, b.grid)) {
+        b.current.y++;
+        if (userTriggered) b.score += 1;
+        return true;
+      }
+      return false;
+    }
     const test = { ...b.current, y: b.current.y + 1 };
     if (!collides(test, b.grid)) {
       b.current = test;
@@ -394,10 +853,21 @@
   function hardDrop(b) {
     if (!b.current || b.gameOver || paused || b.flashing) return;
     let drop = 0;
+    if (b.type === 'puyo') {
+      while (!puyoCollides(b.current.x, b.current.y + 1, b.current.rotation, b.grid)) {
+        b.current.y++;
+        drop++;
+      }
+      b.score += drop * 2;
+      if (!b.isCPU) {
+        if (settings.display.shake) shake(5 + Math.min(4, drop * 0.3));
+        window.audio.playSE('puyoPlace');
+      }
+      lockPiece(b);
+      return;
+    }
     while (!collides({ ...b.current, y: b.current.y + 1 }, b.grid)) { b.current.y++; drop++; }
     b.score += drop * 2;
-    // Only clear the rotation flag if we actually moved. Rotating into a slot
-    // then hard-dropping should still count as a T-Spin (山岳積み etc.).
     if (drop > 0) b.lastActionWasRotate = false;
     if (!b.isCPU) {
       if (settings.display.shake) shake(6 + Math.min(6, drop * 0.4));
@@ -408,7 +878,10 @@
     }
     lockPiece(b);
   }
-  function isOnGround(b) { return collides({ ...b.current, y: b.current.y + 1 }, b.grid); }
+  function isOnGround(b) {
+    if (b.type === 'puyo') return puyoCollides(b.current.x, b.current.y + 1, b.current.rotation, b.grid);
+    return collides({ ...b.current, y: b.current.y + 1 }, b.grid);
+  }
   function consumeLockReset(b) {
     if (b.lockDelay.active && b.lockDelay.resets < LOCK_RESETS_MAX) { b.lockDelay.timer = 0; b.lockDelay.resets++; }
   }
@@ -425,6 +898,23 @@
   }
   function lockPiece(b) {
     if (!b.current) return;
+    if (b.type === 'puyo') {
+      const { p1, p2, x, y, rotation } = b.current;
+      if (y >= 0 && y < ROWS) b.grid[y][x] = p1;
+      let p2x = x, p2y = y;
+      if (rotation === 0) p2y--;
+      else if (rotation === 1) p2x++;
+      else if (rotation === 2) p2y++;
+      else if (rotation === 3) p2x--;
+      if (p2y >= 0 && p2y < ROWS && p2x >= 0 && p2x < COLS) b.grid[p2y][p2x] = p2;
+      
+      b.current = null;
+      b.puyoChain = 0;
+      checkPuyoChains(b, () => {
+        spawn(b);
+      });
+      return;
+    }
     mergePiece(b.current, b.grid);
     if (settings.display.particles && !b.flashing) emitLockParticles(b, b.current, false);
     if (!b.isCPU) window.audio.playSE('lock');
@@ -464,6 +954,127 @@
     b.current = null;
     spawn(b);
   }
+
+  function checkPuyoChains(b, onComplete) {
+    let dropped = false;
+    for (let c = 0; c < COLS; c++) {
+      for (let r = ROWS - 2; r >= 0; r--) {
+        if (b.grid[r][c] && !b.grid[r+1][c]) {
+          let targetY = r;
+          while (targetY + 1 < ROWS && !b.grid[targetY+1][c]) targetY++;
+          b.grid[targetY][c] = b.grid[r][c];
+          b.grid[r][c] = null;
+          dropped = true;
+        }
+      }
+    }
+    if (dropped) {
+      setTimeout(() => checkPuyoChains(b, onComplete), 70);
+      return;
+    }
+
+    const toClear = [];
+    const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const type = b.grid[r][c];
+        if (type && type !== 'O' && !visited[r][c]) {
+          const group = [];
+          const queue = [[r, c]];
+          visited[r][c] = true;
+          while (queue.length > 0) {
+            const [cr, cc] = queue.shift();
+            group.push([cr, cc]);
+            const neighbors = [[cr-1, cc], [cr+1, cc], [cr, cc-1], [cr, cc+1]];
+            for (const [nr, nc] of neighbors) {
+              if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                if (b.grid[nr][nc] === type && !visited[nr][nc]) {
+                  visited[nr][nc] = true;
+                  queue.push([nr, nc]);
+                }
+              }
+            }
+          }
+          if (group.length >= 4) toClear.push(...group);
+        }
+      }
+    }
+
+    if (toClear.length > 0) {
+      const oClear = [];
+      const clearSet = new Set(toClear.map(([r, c]) => `${r},${c}`));
+      for (const [cr, cc] of toClear) {
+        const neighbors = [[cr-1, cc], [cr+1, cc], [cr, cc-1], [cr, cc+1]];
+        for (const [nr, nc] of neighbors) {
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+            if (b.grid[nr][nc] === 'O' && !clearSet.has(`${nr},${nc}`)) {
+              oClear.push([nr, nc]);
+              clearSet.add(`${nr},${nc}`);
+            }
+          }
+        }
+      }
+      toClear.push(...oClear);
+
+      b.flashing = { puyos: toClear, timer: 0 };
+      if (b.puyoChain === undefined) b.puyoChain = 0;
+      b.puyoChain++;
+
+      if (!b.isCPU) {
+        window.audio.playSE('puyoPop');
+        window.audio.playSE('puyoChain', b.puyoChain);
+        const spells = ["FIRE!", "ICE STORM!", "DIACUTE!", "BRAIN DAMNED!", "JUGEM!", "BAYOEN!"];
+        const spell = spells[Math.min(spells.length, b.puyoChain) - 1];
+        triggerCutIn(`${b.puyoChain} CHAIN: ${spell}`);
+        spawnPopup(b, `${b.puyoChain} CHAIN!`, 'popup-combo');
+      }
+
+      setTimeout(() => {
+        for (const [r, c] of toClear) {
+          if (settings.display.particles) emitClearParticles(b, c, r, b.grid[r][c]);
+          b.grid[r][c] = null;
+        }
+        b.flashing = null;
+        applyPuyoScoreAndFx(b, toClear.length);
+        checkPuyoChains(b, onComplete);
+      }, 250);
+    } else {
+      onComplete();
+    }
+  }
+
+  function applyPuyoScoreAndFx(b, clearedCount) {
+    const chainBonus = [0, 8, 18, 38, 78, 120, 180, 250, 320][b.puyoChain] || 400;
+    const points = clearedCount * 12 * b.level + chainBonus;
+    b.score += points;
+    b.lines += Math.floor(clearedCount / 4);
+    const linesPerLevel = mode === 'infinity' ? 5 : 10;
+    const newLevel = Math.floor(b.lines / linesPerLevel) + 1;
+    b.goal = Math.max(0, newLevel * linesPerLevel - b.lines);
+    if (newLevel !== b.level) {
+      b.level = newLevel; recalcDropInterval(b);
+      spawnPopup(b, `LEVEL ${b.level}`, 'popup-levelup');
+      if (!b.isCPU) { window.audio.playSE('levelUp'); if (settings.display.flash) triggerFlash('level'); }
+    }
+    spawnPopup(b, `+${points}`, 'popup-points');
+    if (b.scoreEl) bumpDigi(b.scoreEl);
+    updateHud(b);
+
+    if (mode === 'cpu' && b.opponent && !b.opponent.gameOver) {
+      let g = 0;
+      if (b.puyoChain >= 1) {
+        // Send: 1 chain = 1, 2 chain = 6, 3 chain = 12, 4 chain = 24, 5 chain = 48, 6 chain = 72
+        const puyoG = [0, 1, 6, 12, 24, 48, 72, 96, 120][b.puyoChain] || 150;
+        g = puyoG;
+        if (b.opponent.type === 'tetris') {
+          // Convert Puyo garbage (e.g. 6 puyos = 1 line)
+          g = Math.max(1, Math.floor(puyoG / 6));
+        }
+        if (g > 0) sendGarbage(b, g);
+      }
+    }
+  }
+
   function applyScoreAndFx(b, cleared, tspin) {
     let base = 0, label = '', popupClass = '', isDifficult = false;
     if (tspin) {
@@ -559,6 +1170,22 @@
   }
   function doHold(b) {
     if (!b.current || b.gameOver || paused || b.holdLocked || b.flashing) return;
+    if (b.type === 'puyo') {
+      const cur = { p1: b.current.p1, p2: b.current.p2 };
+      if (b.hold) {
+        const s = b.hold;
+        b.hold = cur;
+        spawn(b, s);
+      } else {
+        b.hold = cur;
+        spawn(b);
+      }
+      b.holdLocked = true;
+      if (b.holdPanel) b.holdPanel.classList.add('locked');
+      if (!b.isCPU) window.audio.playSE('hold');
+      drawHold(b);
+      return;
+    }
     const cur = b.current.type;
     if (b.hold) { const s = b.hold; b.hold = cur; spawn(b, s); }
     else { b.hold = cur; spawn(b); }
@@ -593,18 +1220,58 @@
 
   // ---------- GARBAGE (VS) ----------
   function sendGarbage(fromBoard, amount) {
+    if (mode === 'online') {
+      if (p2pConn && p2pConn.open) {
+        p2pConn.send({ type: 'garbage', amount: amount });
+        spawnPopup(fromBoard, `+${amount} SEND`, 'popup-combo');
+      }
+      return;
+    }
     const target = fromBoard.opponent;
     if (!target || target.gameOver) return;
     target.pendingGarbage += amount;
     if (target.garbageEl) target.garbageEl.textContent = target.pendingGarbage;
+    updateWarningQueue(target);
     spawnPopup(fromBoard, `+${amount} SEND`, 'popup-combo');
   }
   function applyPendingGarbage(b) {
     const n = b.pendingGarbage;
     if (n <= 0) return;
-    // Shift board up by n; add n garbage rows at bottom, each with one random hole (persistent across the block of rows for classic feel)
+    
+    if (b.type === 'puyo') {
+      let count = n;
+      const cols = Array.from({ length: COLS }, (_, i) => i);
+      while (count > 0) {
+        cols.sort(() => Math.random() - 0.5);
+        let placedAny = false;
+        for (const c of cols) {
+          if (count <= 0) break;
+          if (!b.grid[0][c]) {
+            b.grid[0][c] = 'O';
+            count--;
+            placedAny = true;
+          }
+        }
+        if (!placedAny) {
+          b.gameOver = true;
+          break;
+        }
+      }
+      b.pendingGarbage = 0;
+      updateWarningQueue(b);
+      checkPuyoChains(b, () => {});
+      if (b.gameOver) {
+        showOverlay(b, b.isCPU ? 'YOU WIN' : 'CPU WINS', 'Press R to rematch', b.isCPU ? 'win' : 'lose');
+        if (b.opponent && !b.opponent.gameOver) {
+          showOverlay(b.opponent, b.isCPU ? 'YOU WIN' : 'CPU WINS', 'Press R to rematch', b.isCPU ? 'win' : 'lose');
+        }
+        window.audio.stopBGM();
+        window.audio.playSE(b.isCPU ? 'tetris' : 'gameOver');
+      }
+      return;
+    }
+    
     const hole = Math.floor(Math.random() * COLS);
-    // Move rows up: rows [n .. ROWS-1] become [0 .. ROWS-1-n]; rows [ROWS-n .. ROWS-1] are new garbage
     for (let r = 0; r < ROWS - n; r++) {
       b.grid[r] = b.grid[r + n];
     }
@@ -615,6 +1282,7 @@
     }
     b.pendingGarbage = 0;
     if (b.garbageEl) b.garbageEl.textContent = 0;
+    updateWarningQueue(b);
     spawnPopup(b, `-${n} GARBAGE`, 'popup-b2b');
     if (!b.isCPU && settings.display.shake) shake(6);
   }
@@ -765,7 +1433,7 @@
     setTimeout(() => ring.remove(), 1100);
   }
 
-  // ---------- DRAWING ----------
+  // ---------- 2D GRAPHICS RENDERERS ----------
   function drawGrid(b) {
     b.ctx.fillStyle = '#0a0014';
     b.ctx.fillRect(0, 0, b.canvas.width, b.canvas.height);
@@ -783,8 +1451,172 @@
       b.ctx.stroke();
     }
   }
-  function drawBoard(b) {
+
+  function drawBlock(ctx, x, y, cell, type) {
+    const col = COLORS[type];
+    if (!col) return;
+    ctx.fillStyle = col.base;
+    ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
+    ctx.fillStyle = col.light;
+    ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, 3);
+    ctx.fillRect(x * cell + 1, y * cell + 1, 3, cell - 2);
+    ctx.fillStyle = col.dark;
+    ctx.fillRect(x * cell + 1, y * cell + cell - 4, cell - 2, 3);
+    ctx.fillRect(x * cell + cell - 4, y * cell + 1, 3, cell - 2);
+  }
+
+  function drawGhostBlock(ctx, x, y, cell, type) {
+    const col = COLORS[type];
+    if (!col) return;
+    ctx.strokeStyle = col.base;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x * cell + 2.5, y * cell + 2.5, cell - 5, cell - 5);
+  }
+
+  function drawFlashBlock(ctx, x, y, cell, phase) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${1.0 - phase})`;
+    ctx.fillRect(x * cell, y * cell, cell, cell);
+  }
+
+  function drawCpuTargetBlock(ctx, x, y, cell) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.0;
+    ctx.strokeRect(x * cell + 3.5, y * cell + 3.5, cell - 7, cell - 7);
+  }
+
+  function drawLockDimBlock(ctx, x, y, cell, type, dim) {
+    drawBlock(ctx, x, y, cell, type);
+    ctx.fillStyle = `rgba(0, 0, 0, ${dim * 0.4})`;
+    ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
+  }
+
+  function drawPuyo(ctx, x, y, cell, type, grid) {
+    const colors = PUYO_COLORS[type];
+    if (!colors) return;
+    
+    const cx = x * cell + cell / 2;
+    const cy = y * cell + cell / 2;
+    const r = cell / 2 - 1.5;
+    
+    let u = y > 0 && grid[y-1][x] === type;
+    let d = y < ROWS - 1 && grid[y+1][x] === type;
+    let l = x > 0 && grid[y][x-1] === type;
+    let rg = x < COLS - 1 && grid[y][x+1] === type;
+
+    if (type === 'O') {
+      ctx.fillStyle = colors.base;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.strokeStyle = '#374151';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 5, cy - 5); ctx.lineTo(cx + 5, cy + 5);
+      ctx.moveTo(cx + 5, cy - 5); ctx.lineTo(cx - 5, cy + 5);
+      ctx.stroke();
+      return;
+    }
+    
+    const pad = 1.5;
+    const left = x * cell + pad;
+    const top = y * cell + pad;
+    const size = cell - pad * 2;
+    const rad = r;
+
+    ctx.fillStyle = colors.base;
+    ctx.beginPath();
+    ctx.moveTo(left + (l || u ? 0 : rad), top);
+    ctx.lineTo(left + size - (rg || u ? 0 : rad), top);
+    if (!rg && !u) ctx.arcTo(left + size, top, left + size, top + rad, rad);
+    ctx.lineTo(left + size, top + size - (rg || d ? 0 : rad));
+    if (!rg && !d) ctx.arcTo(left + size, top + size, left + size - rad, top + size, rad);
+    ctx.lineTo(left + (l || d ? 0 : rad), top + size);
+    if (!l && !d) ctx.arcTo(left, top + size, left, top + size - rad, rad);
+    ctx.lineTo(left, top + (l || u ? 0 : rad));
+    if (!l && !u) ctx.arcTo(left, top, left + rad, top, rad);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = colors.light;
+    ctx.beginPath();
+    ctx.arc(cx - r/3, cy - r/3, r/4, 0, Math.PI * 2);
+    ctx.fill();
+
+    const eyeR = cell * 0.12;
+    const pupilR = cell * 0.06;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(cx - 4.5, cy + 1, eyeR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4.5, cy + 1, eyeR, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#000000';
+    ctx.beginPath(); ctx.arc(cx - 4.5, cy + 1, pupilR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4.5, cy + 1, pupilR, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawParticles2D(b) {
+    if (!settings.display.particles) return;
+    for (const p of b.particles) {
+      const a = Math.max(0, p.life / p.maxLife);
+      b.ctx.fillStyle = `rgba(${p.rgb[0]}, ${p.rgb[1]}, ${p.rgb[2]}, ${a})`;
+      b.ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    }
+  }
+
+  function drawBoard2D(b) {
     drawGrid(b);
+    
+    if (b.type === 'puyo') {
+      const flashPuyos = b.flashing ? new Set(b.flashing.puyos.map(([r, c]) => `${r},${c}`)) : null;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const t = b.grid[r][c]; if (!t) continue;
+          if (flashPuyos && flashPuyos.has(`${r},${c}`)) {
+            drawFlashBlock(b.ctx, c, r, CELL, 0.4);
+          } else {
+            drawPuyo(b.ctx, c, r, CELL, t, b.grid);
+          }
+        }
+      }
+      if (b.current && !b.gameOver && !b.flashing) {
+        if (b.isCPU && b.cpuTarget && settings.cpu.showTarget) {
+          const tx = b.cpuTarget.x, ty = b.cpuTarget.y, trot = b.cpuTarget.rotation;
+          drawCpuTargetBlock(b.ctx, tx, ty, CELL);
+          let tp2x = tx, tp2y = ty;
+          if (trot === 0) tp2y--;
+          else if (trot === 1) tp2x++;
+          else if (trot === 2) tp2y++;
+          else if (trot === 3) tp2x--;
+          if (tp2y >= 0) drawCpuTargetBlock(b.ctx, tp2x, tp2y, CELL);
+        }
+        if (settings.display.ghost) {
+          const ghost = getPuyoGhost(b);
+          if (ghost) {
+            const gx = ghost.x, gy = ghost.y, grot = ghost.rotation;
+            b.ctx.save(); b.ctx.globalAlpha = 0.35;
+            drawPuyo(b.ctx, gx, gy, CELL, b.current.p1, b.grid);
+            let gp2x = gx, gp2y = gy;
+            if (grot === 0) gp2y--;
+            else if (grot === 1) gp2x++;
+            else if (grot === 2) gp2y++;
+            else if (grot === 3) gp2x--;
+            if (gp2y >= 0) drawPuyo(b.ctx, gp2x, gp2y, CELL, b.current.p2, b.grid);
+            b.ctx.restore();
+          }
+        }
+        const { p1, p2, x, y, rotation } = b.current;
+        if (y >= 0) drawPuyo(b.ctx, x, y, CELL, p1, b.grid);
+        let p2x = x, p2y = y;
+        if (rotation === 0) p2y--;
+        else if (rotation === 1) p2x++;
+        else if (rotation === 2) p2y++;
+        else if (rotation === 3) p2x--;
+        if (p2y >= 0) drawPuyo(b.ctx, p2x, p2y, CELL, p2, b.grid);
+      }
+      drawParticles2D(b);
+      return;
+    }
+
     const flashRows = b.flashing ? new Set(b.flashing.rows) : null;
     const flashPhase = b.flashing ? Math.min(1, b.flashing.timer / LINE_FLASH_MS) : 0;
     for (let r = 0; r < ROWS; r++) {
@@ -822,7 +1654,243 @@
         }
       }));
     }
-    drawParticles(b);
+    drawParticles2D(b);
+    if (b === playerBoard && mode === 'online') {
+      p2pSendTimer = (p2pSendTimer + 1) % 3;
+      if (p2pSendTimer === 0) sendP2PData();
+    }
+  }
+
+  // ---------- 3D GEOMETRIES & MATERIALS CACHE ----------
+  const geomBox = new THREE.BoxGeometry(0.92, 0.92, 0.92);
+  const geomSphere = new THREE.SphereGeometry(0.48, 20, 20);
+  const geomPuyoEye = new THREE.SphereGeometry(0.12, 10, 10);
+  const geomPuyoPupil = new THREE.SphereGeometry(0.06, 8, 8);
+  const geomParticle = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+
+  const materialsCache = {};
+  function getMaterial(colorHex, metal = 0.5, rough = 0.3, opacity = 1.0) {
+    const key = `${colorHex}_${metal}_${rough}_${opacity}`;
+    if (!materialsCache[key]) {
+      materialsCache[key] = new THREE.MeshStandardMaterial({
+        color: colorHex,
+        metalness: metal,
+        roughness: rough,
+        transparent: opacity < 1.0,
+        opacity: opacity
+      });
+    }
+    return materialsCache[key];
+  }
+
+  function create3DPuyoMesh(type) {
+    const group = new THREE.Group();
+    const colors = PUYO_COLORS[type] || COLORS[type];
+    if (!colors) return group;
+
+    const bodyMat = getMaterial(colors.base, 0.1, 0.1);
+    const body = new THREE.Mesh(geomSphere, bodyMat);
+    group.add(body);
+
+    if (type !== 'O') {
+      const eyeMat = getMaterial('#ffffff', 0.0, 0.9);
+      const pupilMat = getMaterial('#000000', 0.0, 0.9);
+      
+      const leftEye = new THREE.Mesh(geomPuyoEye, eyeMat);
+      leftEye.position.set(-0.16, 0.05, 0.38);
+      leftEye.scale.set(1, 1.2, 0.3);
+      group.add(leftEye);
+
+      const rightEye = leftEye.clone();
+      rightEye.position.x = 0.16;
+      group.add(rightEye);
+
+      const leftPupil = new THREE.Mesh(geomPuyoPupil, pupilMat);
+      leftPupil.position.set(-0.16, 0.05, 0.42);
+      leftPupil.scale.set(1, 1, 0.3);
+      group.add(leftPupil);
+
+      const rightPupil = leftPupil.clone();
+      rightPupil.position.x = 0.16;
+      group.add(rightPupil);
+    } else {
+      const crossMat = getMaterial('#374151', 0.0, 0.9);
+      const crossGeom = new THREE.BoxGeometry(0.18, 0.04, 0.04);
+      
+      const leftEye1 = new THREE.Mesh(crossGeom, crossMat); leftEye1.rotation.z = Math.PI / 4; leftEye1.position.set(-0.16, 0.05, 0.42);
+      const leftEye2 = new THREE.Mesh(crossGeom, crossMat); leftEye2.rotation.z = -Math.PI / 4; leftEye2.position.set(-0.16, 0.05, 0.42);
+      group.add(leftEye1); group.add(leftEye2);
+
+      const rightEye1 = leftEye1.clone(); rightEye1.position.x = 0.16;
+      const rightEye2 = leftEye2.clone(); rightEye2.position.x = 0.16;
+      group.add(rightEye1); group.add(rightEye2);
+    }
+    return group;
+  }
+
+  function getPuyoGhost(b) {
+    if (!b.current) return null;
+    let gy = b.current.y;
+    while (!puyoCollides(b.current.x, gy + 1, b.current.rotation, b.grid)) gy++;
+    return { x: b.current.x, y: gy, rotation: b.current.rotation };
+  }
+
+  function applyDisplaySettings() {
+    for (const b of activeBoards) {
+      if (settings.display.renderMode) {
+        init3D(b);
+        b.canvas.style.display = 'none';
+        if (b.canvas3D) b.canvas3D.style.display = 'block';
+      } else {
+        b.canvas.style.display = 'block';
+        if (b.canvas3D) b.canvas3D.style.display = 'none';
+      }
+    }
+  }
+
+  function drawBoard(b) {
+    if (!settings.display.renderMode) {
+      drawBoard2D(b);
+      return;
+    }
+    if (!b.scene || !b.renderer) return;
+
+    // Clean old dynamic meshes
+    for (let i = b.scene.children.length - 1; i >= 0; i--) {
+      const child = b.scene.children[i];
+      if (child.name === "static" || child.isLight || child.isGridHelper) continue;
+      if (child.geometry && child.geometry.type === "BoxGeometry" && child.position.z === -0.6) continue;
+      b.scene.remove(child);
+    }
+
+    const flashRows = b.flashing && b.flashing.rows ? new Set(b.flashing.rows) : null;
+    const flashPuyos = b.flashing && b.flashing.puyos ? new Set(b.flashing.puyos.map(([r, c]) => `${r},${c}`)) : null;
+
+    // 1. Grid static content
+    for (let r = 0; r < ROWS; r++) {
+      const isFlashRow = flashRows && flashRows.has(r);
+      for (let c = 0; c < COLS; c++) {
+        const t = b.grid[r][c]; if (!t) continue;
+        const isFlashPuyo = flashPuyos && flashPuyos.has(`${r},${c}`);
+        
+        let mesh;
+        if (b.type === 'puyo') {
+          if (isFlashPuyo) {
+            mesh = new THREE.Mesh(geomSphere, getMaterial('#ffffff', 0, 1.0));
+          } else {
+            mesh = create3DPuyoMesh(t);
+          }
+        } else {
+          const col = COLORS[t];
+          if (isFlashRow) {
+            mesh = new THREE.Mesh(geomBox, getMaterial('#ffffff', 0, 1.0));
+          } else {
+            mesh = new THREE.Mesh(geomBox, getMaterial(col.base, 0.7, 0.2));
+          }
+        }
+        mesh.position.set(c, ROWS - 1 - r, 0);
+        b.scene.add(mesh);
+      }
+    }
+
+    // 2. Active Piece
+    if (b.current && !b.gameOver && !b.flashing) {
+      if (b.type === 'puyo') {
+        const { p1, p2, x, y, rotation } = b.current;
+        let p2x = x, p2y = y;
+        if (rotation === 0) p2y--;
+        else if (rotation === 1) p2x++;
+        else if (rotation === 2) p2y++;
+        else if (rotation === 3) p2x--;
+
+        if (y >= 0) {
+          const m1 = create3DPuyoMesh(p1);
+          m1.position.set(x, ROWS - 1 - y, 0);
+          b.scene.add(m1);
+        }
+        if (p2y >= 0) {
+          const m2 = create3DPuyoMesh(p2);
+          m2.position.set(p2x, ROWS - 1 - p2y, 0);
+          b.scene.add(m2);
+        }
+
+        // Ghost
+        if (settings.display.ghost) {
+          const ghost = getPuyoGhost(b);
+          if (ghost) {
+            let gp2x = ghost.x, gp2y = ghost.y;
+            if (ghost.rotation === 0) gp2y--;
+            else if (ghost.rotation === 1) gp2x++;
+            else if (ghost.rotation === 2) gp2y++;
+            else if (ghost.rotation === 3) gp2x--;
+
+            if (ghost.y >= 0) {
+              const gm1 = create3DPuyoMesh(p1);
+              gm1.position.set(ghost.x, ROWS - 1 - ghost.y, 0);
+              gm1.children.forEach(c => { if (c.material) c.material = getMaterial(PUYO_COLORS[p1].base, 0, 0, 0.22); });
+              b.scene.add(gm1);
+            }
+            if (gp2y >= 0) {
+              const gm2 = create3DPuyoMesh(p2);
+              gm2.position.set(gp2x, ROWS - 1 - gp2y, 0);
+              gm2.children.forEach(c => { if (c.material) c.material = getMaterial(PUYO_COLORS[p2].base, 0, 0, 0.22); });
+              b.scene.add(gm2);
+            }
+          }
+        }
+      } else {
+        const col = COLORS[b.current.type];
+        let dim = 0;
+        if (b.lockDelay.active && settings.handling.lockDelay > 0) dim = Math.min(1, b.lockDelay.timer / settings.handling.lockDelay);
+        const mat = getMaterial(col.base, 0.7, 0.2, 1.0 - dim * 0.35);
+
+        b.current.matrix.forEach((row, r) => row.forEach((v, c) => {
+          if (!v) return;
+          const ny = b.current.y + r, nx = b.current.x + c;
+          if (ny >= 0) {
+            const mesh = new THREE.Mesh(geomBox, mat);
+            mesh.position.set(nx, ROWS - 1 - ny, 0);
+            b.scene.add(mesh);
+          }
+        }));
+
+        // Ghost
+        if (settings.display.ghost) {
+          const ghost = getGhost(b);
+          const gMat = getMaterial(col.base, 0.3, 0.5, 0.22);
+          ghost.matrix.forEach((row, r) => row.forEach((v, c) => {
+            if (!v) return;
+            const ny = ghost.y + r, nx = ghost.x + c;
+            if (ny >= 0) {
+              const mesh = new THREE.Mesh(geomBox, gMat);
+              mesh.position.set(nx, ROWS - 1 - ny, 0);
+              b.scene.add(mesh);
+            }
+          }));
+        }
+      }
+    }
+
+    // 3. Particles
+    if (settings.display.particles && b.particles.length > 0) {
+      for (const p of b.particles) {
+        const a = Math.max(0, p.life / p.maxLife);
+        const hex = `rgb(${p.rgb[0]},${p.rgb[1]},${p.rgb[2]})`;
+        const pMat = getMaterial(hex, 0.2, 0.6, a);
+        const pMesh = new THREE.Mesh(geomParticle, pMat);
+        
+        const cx = p.x / CELL - 0.5;
+        const cy = ROWS - p.y / CELL + 0.5;
+        pMesh.position.set(cx, cy, 0.2);
+        b.scene.add(pMesh);
+      }
+    }
+
+    b.renderer.render(b.scene, b.camera);
+    if (b === playerBoard && mode === 'online') {
+      p2pSendTimer = (p2pSendTimer + 1) % 3;
+      if (p2pSendTimer === 0) sendP2PData();
+    }
   }
   function drawPieceCentered(ctx, canvas, type, cell) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -842,19 +1910,28 @@
     if (!b.nctx) return;
     b.nctx.clearRect(0, 0, b.nextCanvas.width, b.nextCanvas.height);
     const slotH = b.nextCanvas.height / NEXT_QUEUE;
-    const cell = 16;
+    const cell = b.type === 'puyo' ? 22 : 16;
+    
     for (let i = 0; i < NEXT_QUEUE; i++) {
       const type = b.queue[i]; if (!type) continue;
-      const m = SHAPES[type];
-      let minR = m.length, maxR = -1, minC = m[0].length, maxC = -1;
-      for (let r = 0; r < m.length; r++) for (let cc = 0; cc < m[0].length; cc++) {
-        if (m[r][cc]) { if (r<minR) minR=r; if (r>maxR) maxR=r; if (cc<minC) minC=cc; if (cc>maxC) maxC=cc; }
+      if (b.type === 'puyo') {
+        const offX = (b.nextCanvas.width - cell) / 2;
+        const offY = i * slotH + (slotH - cell * 2.2) / 2;
+        // Draw p2 (top) and p1 (bottom) vertically
+        drawPuyo(b.nctx, offX / cell, offY / cell, cell, type.p2, []);
+        drawPuyo(b.nctx, offX / cell, (offY + cell * 1.1) / cell, cell, type.p1, []);
+      } else {
+        const m = SHAPES[type];
+        let minR = m.length, maxR = -1, minC = m[0].length, maxC = -1;
+        for (let r = 0; r < m.length; r++) for (let cc = 0; cc < m[0].length; cc++) {
+          if (m[r][cc]) { if (r<minR) minR=r; if (r>maxR) maxR=r; if (cc<minC) minC=cc; if (cc>maxC) maxC=cc; }
+        }
+        const w = (maxC-minC+1)*cell, h = (maxR-minR+1)*cell;
+        const offX = (b.nextCanvas.width - w)/2 - minC*cell;
+        const offY = i*slotH + (slotH - h)/2 - minR*cell;
+        for (let r = minR; r <= maxR; r++) for (let cc = minC; cc <= maxC; cc++)
+          if (m[r][cc]) drawBlockAbs(b.nctx, offX + cc*cell, offY + r*cell, cell, type);
       }
-      const w = (maxC-minC+1)*cell, h = (maxR-minR+1)*cell;
-      const offX = (b.nextCanvas.width - w)/2 - minC*cell;
-      const offY = i*slotH + (slotH - h)/2 - minR*cell;
-      for (let r = minR; r <= maxR; r++) for (let cc = minC; cc <= maxC; cc++)
-        if (m[r][cc]) drawBlockAbs(b.nctx, offX + cc*cell, offY + r*cell, cell, type);
       if (i < NEXT_QUEUE - 1) {
         b.nctx.strokeStyle = 'rgba(140, 240, 255, 0.18)'; b.nctx.lineWidth = 1;
         b.nctx.beginPath();
@@ -863,7 +1940,21 @@
       }
     }
   }
-  function drawHold(b) { if (b.hctx) drawPieceCentered(b.hctx, b.holdCanvas, b.hold, 14); }
+  function drawHold(b) {
+    if (!b.hctx) return;
+    b.hctx.clearRect(0, 0, b.holdCanvas.width, b.holdCanvas.height);
+    if (!b.hold) return;
+    
+    if (b.type === 'puyo') {
+      const cell = 20;
+      const offX = (b.holdCanvas.width - cell) / 2;
+      const offY = (b.holdCanvas.height - cell * 2.2) / 2;
+      drawPuyo(b.hctx, offX / cell, offY / cell, cell, b.hold.p2, []);
+      drawPuyo(b.hctx, offX / cell, (offY + cell * 1.1) / cell, cell, b.hold.p1, []);
+    } else {
+      drawPieceCentered(b.hctx, b.holdCanvas, b.hold, 14);
+    }
+  }
 
   // ---------- HUD ----------
   function fmtTime(ms) {
@@ -905,6 +1996,97 @@
   function hideAllOverlays() { for (const b of activeBoards) hideOverlay(b); }
 
   // ---------- CPU AI ----------
+  function evaluateGridPuyo(g) {
+    let score = 0;
+    const heights = new Array(COLS).fill(0);
+    for (let c = 0; c < COLS; c++) {
+      for (let r = 0; r < ROWS; r++) {
+        if (g[r][c]) { heights[c] = ROWS - r; break; }
+      }
+    }
+    const maxH = Math.max(...heights);
+    const avgH = heights.reduce((a, b) => a + b, 0) / COLS;
+    const centerH = Math.max(heights[3], heights[4], heights[5]);
+    score -= centerH * 3.2;
+    score -= maxH * 1.6;
+    score -= avgH * 0.9;
+
+    const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const type = g[r][c];
+        if (type && type !== 'O' && !visited[r][c]) {
+          const group = [];
+          const queue = [[r, c]];
+          visited[r][c] = true;
+          while (queue.length > 0) {
+            const [cr, cc] = queue.shift();
+            group.push([cr, cc]);
+            const neighbors = [[cr-1, cc], [cr+1, cc], [cr, cc-1], [cr, cc+1]];
+            for (const [nr, nc] of neighbors) {
+              if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                if (g[nr][nc] === type && !visited[nr][nc]) {
+                  visited[nr][nc] = true;
+                  queue.push([nr, nc]);
+                }
+              }
+            }
+          }
+          if (group.length === 2) score += 4.0;
+          else if (group.length === 3) score += 11.0;
+          else if (group.length >= 4) {
+            score += 40.0 + (group.length - 4) * 10;
+          }
+        }
+      }
+    }
+    return score;
+  }
+
+  function findBestMovePuyo(piece, snapshot, noise = 0, missChance = 0) {
+    const candidates = [];
+    const p1 = piece.p1, p2 = piece.p2;
+    for (let rot = 0; rot < 4; rot++) {
+      let minX = 0, maxX = COLS - 1;
+      if (rot === 1) maxX = COLS - 2;
+      else if (rot === 3) minX = 1;
+      for (let x = minX; x <= maxX; x++) {
+        let y = 1;
+        if (puyoCollides(x, y, rot, snapshot)) continue;
+        while (!puyoCollides(x, y + 1, rot, snapshot)) y++;
+        const simGrid = snapshot.map(r => r.slice());
+        simGrid[y][x] = p1;
+        let p2x = x, p2y = y;
+        if (rot === 0) p2y--;
+        else if (rot === 1) p2x++;
+        else if (rot === 2) p2y++;
+        else if (rot === 3) p2x--;
+        if (p2y >= 0 && p2y < ROWS && p2x >= 0 && p2x < COLS) simGrid[p2y][p2x] = p2;
+        // Gravity sim
+        for (let c = 0; c < COLS; c++) {
+          for (let r = ROWS - 2; r >= 0; r--) {
+            if (simGrid[r][c] && !simGrid[r+1][c]) {
+              let targetY = r;
+              while (targetY + 1 < ROWS && !simGrid[targetY+1][c]) targetY++;
+              simGrid[targetY][c] = simGrid[r][c];
+              simGrid[r][c] = null;
+            }
+          }
+        }
+        let score = evaluateGridPuyo(simGrid);
+        if (noise > 0) score += (Math.random() - 0.5) * 2 * noise;
+        candidates.push({ score, x, y, rotation: rot });
+      }
+    }
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => b.score - a.score);
+    if (missChance > 0 && Math.random() < missChance && candidates.length > 1) {
+      const idx = 1 + Math.floor(Math.random() * Math.min(2, candidates.length - 1));
+      return candidates[idx];
+    }
+    return candidates[0];
+  }
+
   function evaluateGrid(g) {
     const heights = new Array(COLS).fill(0);
     let holes = 0;
@@ -975,7 +2157,9 @@
     if (b.cpuActionTimer < preset.speed) return;
     b.cpuActionTimer = 0;
     if (!b.cpuTarget) {
-      b.cpuTarget = findBestMove(b.current, b.grid, preset.noise, preset.missChance);
+      b.cpuTarget = b.type === 'puyo'
+        ? findBestMovePuyo(b.current, b.grid, preset.noise, preset.missChance)
+        : findBestMove(b.current, b.grid, preset.noise, preset.missChance);
       if (!b.cpuTarget) { hardDrop(b); return; }
     }
     if (b.current.rotation !== b.cpuTarget.rotation) {
@@ -1232,6 +2416,520 @@
     for (const k in held) delete held[k];
   }
 
+  // ---------- ONLINE P2P MULTIPLAYER ----------
+  let p2pPeer = null;
+  let p2pConn = null;
+  let p2pIsHost = false;
+  let p2pMyReady = false;
+  let p2pOpponentReady = false;
+  let p2pSendTimer = 0;
+
+  function initOnline() {
+    p2pMyReady = false;
+    p2pOpponentReady = false;
+    if (p2pPeer) { p2pPeer.destroy(); p2pPeer = null; }
+    if (p2pConn) { p2pConn.close(); p2pConn = null; }
+
+    const statusEl = $('onlineStatus');
+    statusEl.textContent = '接続IDを取得中...';
+    statusEl.style.color = '#22e6ff';
+
+    // Initialize PeerJS
+    p2pPeer = new Peer();
+
+    p2pPeer.on('open', (id) => {
+      p2pIsHost = true;
+      $('hostPeerIdDisplay').textContent = id;
+      statusEl.textContent = '対戦相手の接続を待っています...';
+      initMQTT(id);
+      
+      const publishCheck = $('publishRoomCheck');
+      if (publishCheck && publishCheck.checked) {
+        publishMyRoom(id, $('publishRoomNameInput').value);
+      }
+    });
+
+    p2pPeer.on('error', (err) => {
+      console.error(err);
+      statusEl.textContent = 'エラーが発生しました: ' + err.type;
+      statusEl.style.color = '#ef4444';
+      if (p2pPeer) publishMyRoom(p2pPeer.id, '', true);
+    });
+
+    // Host connection receiver
+    p2pPeer.on('connection', (conn) => {
+      p2pIsHost = true;
+      setupP2PConnection(conn);
+    });
+  }
+
+  function setupP2PConnection(conn) {
+    p2pConn = conn;
+    const statusEl = $('onlineStatus');
+    statusEl.textContent = '接続完了！データ同期を開始します...';
+    statusEl.style.color = '#4ade80';
+
+    conn.on('open', () => {
+      if (p2pPeer) publishMyRoom(p2pPeer.id, '', true);
+      setTimeout(() => {
+        $('onlineLobby').classList.add('hidden');
+        typeSelect.classList.remove('hidden');
+        cpuTypeBox.style.display = 'none'; // Guest style choice is selected by themselves
+        window.audio.playSE('tetris');
+      }, 1000);
+    });
+
+    conn.on('data', (data) => {
+      handleP2PMessage(data);
+    });
+
+    conn.on('close', () => {
+      statusEl.textContent = '対戦相手が切断しました。';
+      statusEl.style.color = '#ef4444';
+      if (appState === 'playing') {
+        showOverlay(playerBoard, 'DISCONNECTED', 'Opponent left the match');
+        matchEnded = true;
+      }
+    });
+  }
+
+  // Client connection initiator
+  $('onlineConnectBtn').addEventListener('click', () => {
+    const id = $('joinPeerIdInput').value.trim();
+    if (!id) return;
+    p2pIsHost = false;
+    const statusEl = $('onlineStatus');
+    statusEl.textContent = 'ホストに接続中...';
+    
+    if (p2pPeer) {
+      const conn = p2pPeer.connect(id);
+      setupP2PConnection(conn);
+    }
+  });
+
+  $('onlineBackBtn').addEventListener('click', () => {
+    if (p2pPeer) {
+      publishMyRoom(p2pPeer.id, '', true);
+      p2pPeer.destroy(); p2pPeer = null;
+    }
+    if (p2pConn) { p2pConn.close(); p2pConn = null; }
+    $('onlineLobby').classList.add('hidden');
+    showModeSelect();
+  });
+
+  function handleP2PMessage(data) {
+    if (data.type === 'ready') {
+      p2pOpponentReady = true;
+      cpuBoard.type = data.boardType;
+      checkOnlineStart();
+    }
+    else if (data.type === 'state') {
+      cpuBoard.type = data.boardType;
+      cpuBoard.grid = data.grid;
+      cpuBoard.current = data.current;
+      cpuBoard.score = data.score;
+      cpuBoard.lines = data.lines;
+      cpuBoard.level = data.level;
+      cpuBoard.flashing = data.flashing;
+      cpuBoard.particles = data.particles;
+      cpuBoard.gameOver = data.gameOver;
+      cpuBoard.puyoChain = data.puyoChain;
+
+      if (data.gameOver && !playerBoard.gameOver) {
+        showOverlay(playerBoard, 'YOU WIN', 'Opponent topped out!', 'win');
+        matchEnded = true;
+        window.audio.stopBGM();
+      }
+    }
+    else if (data.type === 'garbage') {
+      playerBoard.pendingGarbage += data.amount;
+      updateWarningQueue(playerBoard);
+    }
+    else if (data.type === 'rematch') {
+      p2pOpponentReady = true;
+      spawnPopup(playerBoard, 'OPPONENT WANTS REMATCH', 'popup-mode');
+      if (p2pMyReady) {
+        p2pMyReady = false; p2pOpponentReady = false;
+        reset();
+      }
+    }
+  }
+
+  function sendP2PData() {
+    if (mode !== 'online' || !p2pConn || !p2pConn.open) return;
+    p2pConn.send({
+      type: 'state',
+      boardType: playerBoard.type,
+      grid: playerBoard.grid,
+      current: playerBoard.current,
+      score: playerBoard.score,
+      lines: playerBoard.lines,
+      level: playerBoard.level,
+      flashing: playerBoard.flashing,
+      particles: playerBoard.particles,
+      gameOver: playerBoard.gameOver,
+      puyoChain: playerBoard.puyoChain
+    });
+  }
+
+  function applyActiveSkin() {
+    const skin = SKIN_COLORS[activeSkin] || SKIN_COLORS.classic;
+    for (const key in COLORS) {
+      if (skin[key]) {
+        COLORS[key].base = skin[key].base;
+        COLORS[key].light = skin[key].light;
+        COLORS[key].dark = skin[key].dark;
+      }
+    }
+    for (const key in PUYO_COLORS) {
+      const skinKey = key === 'G' ? 'G_puyo' : (key === 'O' ? 'O_puyo' : key);
+      if (skin[skinKey]) {
+        PUYO_COLORS[key].base = skin[skinKey].base;
+        PUYO_COLORS[key].light = skin[skinKey].light;
+        PUYO_COLORS[key].dark = skin[skinKey].dark;
+      }
+    }
+    for (const key in blockCache) delete blockCache[key];
+  }
+
+  const BG_COLORS = {
+    default: 'radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%)',
+    sky: 'linear-gradient(180deg, #bae6fd 0%, #38bdf8 100%)',
+    pink: 'linear-gradient(180deg, #fbcfe8 0%, #f472b6 100%)',
+    mint: 'linear-gradient(180deg, #a7f3d0 0%, #34d399 100%)',
+    lavender: 'linear-gradient(180deg, #e0e7ff 0%, #a5b4fc 100%)',
+    sunset: 'linear-gradient(180deg, #ffedd5 0%, #fdba74 100%)',
+    night: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
+    snow: 'linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)',
+    golddust: 'linear-gradient(180deg, #fef3c7 0%, #fcd34d 100%)',
+    forest: 'linear-gradient(180deg, #d1fae5 0%, #10b981 100%)',
+    ghoul: 'url("C:/Users/syunp/.gemini/antigravity-ide/brain/7f6613b8-6a49-4623-8ad3-53cb27b69c2d/media__1783231180078.png")',
+    kaiju: 'url("C:/Users/syunp/.gemini/antigravity-ide/brain/7f6613b8-6a49-4623-8ad3-53cb27b69c2d/media__1783231237554.jpg")'
+  };
+  function applyActiveBg() {
+    const bgStyle = BG_COLORS[activeBg] || BG_COLORS.default;
+    const stage = document.querySelector('.stage');
+    if (stage) {
+      stage.style.background = bgStyle;
+      if (activeBg === 'ghoul' || activeBg === 'kaiju') {
+        stage.style.backgroundSize = 'cover';
+        stage.style.backgroundPosition = 'center';
+      } else {
+        stage.style.backgroundSize = '';
+        stage.style.backgroundPosition = '';
+      }
+    }
+  }
+
+  function playGachaAnimation(itemType, itemKey, isNew) {
+    const overlay = $('gachaOverlay');
+    const capsule = $('gachaCapsule');
+    const card = $('gachaResultCard');
+    
+    overlay.classList.remove('hidden');
+    card.classList.add('hidden');
+    capsule.style.display = 'block';
+    capsule.textContent = itemType === 'skin' ? '🎁' : '🖼️';
+    
+    // GSAP Shake & Pop animation
+    const tl = gsap.timeline();
+    tl.to(capsule, { duration: 0.1, x: -12, repeat: 7, yoyo: true })
+      .to(capsule, { duration: 0.15, y: -30, scale: 1.15, ease: "power1.out" })
+      .to(capsule, { duration: 0.2, y: 0, scale: 1.0, ease: "bounce.out" })
+      .to(capsule, { duration: 0.2, scale: 1.8, opacity: 0, ease: "power2.in", onComplete: () => {
+        capsule.style.display = 'none';
+        capsule.style.opacity = 1;
+        capsule.style.transform = '';
+        card.classList.remove('hidden');
+        
+        const item = itemType === 'skin' ? SKINS[itemKey] : BACKGROUNDS[itemKey];
+        $('gachaItemRarity').textContent = isNew ? 'NEW ITEM GET!' : 'DUPLICATE! (+50🪙)';
+        $('gachaItemRarity').style.color = isNew ? 'var(--cyan)' : 'var(--magenta)';
+        $('gachaItemName').textContent = item.name;
+        $('gachaItemDesc').textContent = item.desc;
+        
+        const preview = $('gachaItemPreview');
+        preview.innerHTML = '';
+        if (itemType === 'skin') {
+          const col = SKIN_COLORS[itemKey] || SKIN_COLORS.classic;
+          const block = document.createElement('div');
+          block.style.width = '35px';
+          block.style.height = '35px';
+          block.style.backgroundColor = col.I.base;
+          block.style.border = `3.5px solid ${col.I.light}`;
+          block.style.borderRadius = '8px';
+          block.style.boxShadow = `inset 0 0 6px ${col.I.dark}, 0 4px 10px rgba(0,0,0,0.15)`;
+          preview.appendChild(block);
+        } else {
+          const bg = BG_COLORS[itemKey] || BG_COLORS.default;
+          const bgBox = document.createElement('div');
+          bgBox.style.width = '100px';
+          bgBox.style.height = '48px';
+          bgBox.style.background = bg;
+          bgBox.style.borderRadius = '8px';
+          bgBox.style.border = '1.5px solid var(--border-color)';
+          preview.appendChild(bgBox);
+        }
+        
+        gsap.fromTo(card, 
+          { scale: 0.7, opacity: 0, rotationY: 90 },
+          { duration: 0.5, scale: 1, opacity: 1, rotationY: 0, ease: "back.out(1.5)" }
+        );
+        window.audio.playSE('tetris');
+      }});
+  }
+
+  function pullGacha(type) {
+    if (userCoins < 100) {
+      window.audio.playSE('move');
+      return;
+    }
+    userCoins -= 100;
+    localStorage.setItem('puyotetris_coins', userCoins);
+    
+    let pulled = '';
+    const owned = type === 'skin' ? ownedSkins : ownedBgs;
+
+    if (type === 'skin') {
+      const pool = Object.keys(SKINS);
+      pulled = pool[Math.floor(Math.random() * pool.length)];
+    } else {
+      // 0.1% (0.001) chance for Secret backgrounds, otherwise pull normal backgrounds
+      const isSecret = Math.random() < 0.001;
+      if (isSecret) {
+        const secrets = ['ghoul', 'kaiju'];
+        pulled = secrets[Math.floor(Math.random() * secrets.length)];
+      } else {
+        const normalBgs = ['default', 'sky', 'pink', 'mint', 'lavender', 'sunset', 'night', 'snow', 'golddust', 'forest'];
+        pulled = normalBgs[Math.floor(Math.random() * normalBgs.length)];
+      }
+    }
+    
+    const isNew = !owned.includes(pulled);
+    
+    if (isNew) {
+      owned.push(pulled);
+      if (type === 'skin') localStorage.setItem('puyotetris_owned_skins', JSON.stringify(owned));
+      else localStorage.setItem('puyotetris_owned_bgs', JSON.stringify(owned));
+    } else {
+      userCoins += 50;
+      localStorage.setItem('puyotetris_coins', userCoins);
+    }
+    
+    playGachaAnimation(type, pulled, isNew);
+  }
+
+  $('pullSkinGachaBtn').addEventListener('click', () => pullGacha('skin'));
+  $('pullBgGachaBtn').addEventListener('click', () => pullGacha('bg'));
+  $('gachaOkBtn').addEventListener('click', () => {
+    $('gachaOverlay').classList.add('hidden');
+    updateShopUI();
+    updateCustomizeDropdowns();
+  });
+
+  function updateShopUI() {
+    $('shopCoinsDisplay').textContent = userCoins;
+    $('ownedSkinsCount').textContent = ownedSkins.length;
+    $('ownedBgsCount').textContent = ownedBgs.length;
+  }
+
+  function updateCustomizeDropdowns() {
+    const skinSelect = $('skinSelect');
+    const bgSelect = $('bgSelect');
+    
+    skinSelect.innerHTML = '';
+    ownedSkins.forEach(key => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = SKINS[key].name;
+      opt.selected = activeSkin === key;
+      skinSelect.appendChild(opt);
+    });
+
+    bgSelect.innerHTML = '';
+    ownedBgs.forEach(key => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = BACKGROUNDS[key].name;
+      opt.selected = activeBg === key;
+      bgSelect.appendChild(opt);
+    });
+  }
+
+  $('skinSelect').addEventListener('change', (e) => {
+    activeSkin = e.target.value;
+    localStorage.setItem('puyotetris_active_skin', activeSkin);
+    applyActiveSkin();
+  });
+
+  $('bgSelect').addEventListener('change', (e) => {
+    activeBg = e.target.value;
+    localStorage.setItem('puyotetris_active_bg', activeBg);
+    applyActiveBg();
+  });
+
+  // ---------- MQTT MULTIPLAYER NETWORK ----------
+  let mqttClient = null;
+  let publicRooms = [];
+  let friends = JSON.parse(localStorage.getItem('puyotetris_friends') || '[]');
+  let friendsOnline = {};
+
+  function initMQTT(peerId) {
+    if (mqttClient) { mqttClient.end(); mqttClient = null; }
+
+    mqttClient = mqtt.connect('wss://broker.hivemq.com:8000/mqtt');
+
+    mqttClient.on('connect', () => {
+      mqttClient.subscribe('puyotetris/rooms/public');
+      mqttClient.subscribe(`puyotetris/friend/${peerId}`);
+      
+      // Broardcast online presence to friends
+      friends.forEach(fId => {
+        mqttClient.publish(`puyotetris/friend/${fId}`, JSON.stringify({ type: 'online', from: peerId }));
+      });
+
+      refreshPublicRooms();
+      refreshFriendsList();
+    });
+
+    mqttClient.on('message', (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        if (topic === 'puyotetris/rooms/public') {
+          if (data.action === 'add') {
+            if (!publicRooms.some(r => r.id === data.id)) publicRooms.push(data);
+          } else if (data.action === 'remove') {
+            publicRooms = publicRooms.filter(r => r.id !== data.id);
+          }
+          refreshPublicRooms();
+        } else if (topic === `puyotetris/friend/${peerId}`) {
+          if (data.type === 'online') {
+            friendsOnline[data.from] = true;
+            refreshFriendsList();
+            // Send back online acknowledgement
+            mqttClient.publish(`puyotetris/friend/${data.from}`, JSON.stringify({ type: 'online_ack', from: peerId }));
+          } else if (data.type === 'online_ack') {
+            friendsOnline[data.from] = true;
+            refreshFriendsList();
+          } else if (data.type === 'invite') {
+            spawnPopup(playerBoard, 'FRIEND INVITE RECEIVED', 'popup-mode');
+            $('onlineStatus').textContent = `フレンド [${data.from}] から対戦申請が届きました。`;
+            $('joinPeerIdInput').value = data.from;
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+
+  function publishMyRoom(peerId, name, remove = false) {
+    if (!mqttClient || !mqttClient.connected) return;
+    mqttClient.publish('puyotetris/rooms/public', JSON.stringify({
+      action: remove ? 'remove' : 'add',
+      id: peerId,
+      name: name || 'NO NAME'
+    }));
+  }
+
+  function refreshPublicRooms() {
+    const list = $('publicRoomsList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (publicRooms.length === 0) {
+      list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px 0;">公開ルームが見つかりません。</div>';
+      return;
+    }
+    publicRooms.forEach(room => {
+      const div = document.createElement('div');
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
+      div.style.padding = '8px 12px';
+      div.style.background = 'rgba(255,255,255,0.06)';
+      div.style.borderRadius = '8px';
+      div.style.border = '1px solid rgba(255,255,255,0.08)';
+      
+      div.innerHTML = `
+        <span style="font-weight:bold; color:#fff;">${room.name}</span>
+        <button class="type-start-btn" style="margin:0; padding:6px 12px; font-size:0.8rem; border-radius:6px;" onclick="connectToRoom('${room.id}')">JOIN</button>
+      `;
+      list.appendChild(div);
+    });
+  }
+  window.connectToRoom = (id) => {
+    $('joinPeerIdInput').value = id;
+    $('onlineConnectBtn').click();
+  };
+
+  function refreshFriendsList() {
+    const list = $('friendsList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (friends.length === 0) {
+      list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 15px 0;">フレンドが登録されていません。</div>';
+      return;
+    }
+    friends.forEach(fId => {
+      const isOnline = !!friendsOnline[fId];
+      const div = document.createElement('div');
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
+      div.style.padding = '8px 12px';
+      div.style.background = 'rgba(255,255,255,0.06)';
+      div.style.borderRadius = '8px';
+      
+      div.innerHTML = `
+        <span style="font-weight:bold; color:${isOnline ? '#22e6ff' : '#888'};">${fId.slice(0,8)}... (${isOnline ? 'ONLINE' : 'OFFLINE'})</span>
+        <div>
+          ${isOnline ? `<button class="type-start-btn" style="margin:0; padding:4px 8px; font-size:0.75rem; border-radius:6px; background:#0ea5e9;" onclick="inviteFriend('${fId}')">対戦申請</button>` : ''}
+          <button class="type-start-btn" style="margin:0; padding:4px 8px; font-size:0.75rem; border-radius:6px; background:#ef4444;" onclick="removeFriend('${fId}')">削除</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+  window.inviteFriend = (fId) => {
+    if (mqttClient && mqttClient.connected) {
+      mqttClient.publish(`puyotetris/friend/${fId}`, JSON.stringify({ type: 'invite', from: myPeerId }));
+      $('onlineStatus').textContent = `フレンド [${fId.slice(0,8)}] に対戦申請を送信しました。`;
+    }
+  };
+  window.removeFriend = (fId) => {
+    friends = friends.filter(id => id !== fId);
+    localStorage.setItem('puyotetris_friends', JSON.stringify(friends));
+    refreshFriendsList();
+  };
+
+  $('addFriendBtn').addEventListener('click', () => {
+    const id = $('friendIdInput').value.trim();
+    if (id && id !== myPeerId && !friends.includes(id)) {
+      friends.push(id);
+      localStorage.setItem('puyotetris_friends', JSON.stringify(friends));
+      $('friendIdInput').value = '';
+      refreshFriendsList();
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`puyotetris/friend/${id}`, JSON.stringify({ type: 'online', from: myPeerId }));
+      }
+    }
+  });
+
+  // Lobby Tabs handler
+  document.querySelectorAll('.lobby-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.lobby-tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.color = '#aaa';
+      });
+      btn.classList.add('active');
+      btn.style.color = '#fff';
+      
+      document.querySelectorAll('.lobby-tab-content').forEach(c => c.classList.add('hidden'));
+      $(`${btn.dataset.tab}TabContent`).classList.remove('hidden');
+    });
+  });
+
   // ---------- MODE SELECT ----------
   const modeCards = document.querySelectorAll('.mode-card');
   modeCards.forEach(card => {
@@ -1244,17 +2942,49 @@
     });
     card.addEventListener('mouseleave', () => { card.style.transform = ''; });
   });
-  function chooseMode(m, cardEl) {
-    if (!m || appState !== 'menu') return;
+  // ---------- TYPE & CHARACTER SELECT ----------
+  const typeSelect = $('typeSelect');
+  const playerTypeButtons = document.querySelectorAll('#playerTypeOptions .type-opt-btn');
+  const cpuTypeButtons = document.querySelectorAll('#cpuTypeOptions .type-opt-btn');
+  const cpuTypeBox = $('cpuTypeBox');
+
+  playerTypeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      playerTypeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      window.audio.playSE('move');
+    });
+  });
+
+  cpuTypeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      cpuTypeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      window.audio.playSE('move');
+    });
+  });
+
+  $('typeStartBtn').addEventListener('click', () => {
     window.audio.playSE('tetris');
-    if (cardEl) cardEl.classList.add('selecting');
-    modeCards.forEach(c => { if (c !== cardEl) c.classList.add('dismissing'); });
-    setTimeout(() => {
-      mode = m;
+    
+    const pActive = document.querySelector('#playerTypeOptions .type-opt-btn.active');
+    playerBoard.type = pActive ? pActive.dataset.type : 'tetris';
+
+    if (mode === 'online') {
+      p2pMyReady = true;
+      if (p2pConn && p2pConn.open) {
+        p2pConn.send({ type: 'ready', boardType: playerBoard.type });
+      }
+      typeSelect.classList.add('hidden');
+      spawnPopup(playerBoard, 'WAITING FOR OPPONENT', 'popup-mode');
+      checkOnlineStart();
+    } else {
+      typeSelect.classList.add('hidden');
       appState = 'playing';
-      modeSelect.classList.add('hidden');
-      modeBgCanvas.classList.remove('visible');
-      document.body.classList.remove('mode-marathon', 'mode-cpu', 'mode-infinity');
+      const cActive = document.querySelector('#cpuTypeOptions .type-opt-btn.active');
+      cpuBoard.type = cActive ? cActive.dataset.type : 'puyo';
+
+      document.body.classList.remove('mode-marathon', 'mode-cpu', 'mode-infinity', 'mode-online');
       document.body.classList.add(`mode-${mode}`);
       gameFrame.classList.remove('hidden');
       if (mode === 'cpu') {
@@ -1269,13 +2999,75 @@
       if (settings.audio.bgm) { window.audio.startBGM(); bgmStartedOnce = true; }
       updateModeBadge();
       spawnPopup(playerBoard, mode === 'cpu' ? 'VS CPU' : mode.toUpperCase(), 'popup-mode');
+    }
+  });
+
+  function checkOnlineStart() {
+    if (p2pMyReady && p2pOpponentReady) {
+      appState = 'playing';
+      document.body.classList.remove('mode-marathon', 'mode-cpu', 'mode-infinity', 'mode-online');
+      document.body.classList.add(`mode-online`);
+      
+      cpuFrame.classList.remove('hidden'); // Opponent board visible
+      activeBoards = [playerBoard, cpuBoard];
+      cpuBoard.isCPU = false; // Disable AI for player two
+      
+      gameFrame.classList.remove('hidden');
+      gameFrame.style.animation = 'none'; void gameFrame.offsetWidth; gameFrame.style.animation = '';
+      reset();
+      if (settings.audio.bgm) { window.audio.startBGM(); bgmStartedOnce = true; }
+      updateModeBadge();
+      spawnPopup(playerBoard, 'FIGHT!', 'popup-mode');
+    }
+  }
+
+  $('typeBackBtn').addEventListener('click', () => {
+    typeSelect.classList.add('hidden');
+    if (mode === 'online') {
+      if (p2pPeer) { p2pPeer.destroy(); p2pPeer = null; }
+      if (p2pConn) { p2pConn.close(); p2pConn = null; }
+    }
+    showModeSelect();
+  });
+
+  $('shopBackBtn').addEventListener('click', () => {
+    $('shopPanel').classList.add('hidden');
+    showModeSelect();
+  });
+
+  function chooseMode(m, cardEl) {
+    if (!m || appState !== 'menu') return;
+    window.audio.playSE('tetris');
+    if (cardEl) cardEl.classList.add('selecting');
+    modeCards.forEach(c => { if (c !== cardEl) c.classList.add('dismissing'); });
+    setTimeout(() => {
+      mode = m;
+      modeSelect.classList.add('hidden');
+      modeBgCanvas.classList.remove('visible');
+      if (mode === 'online') {
+        $('onlineLobby').classList.remove('hidden');
+        initOnline();
+      } else if (mode === 'shop') {
+        $('shopPanel').classList.remove('hidden');
+        updateShopUI();
+      } else {
+        typeSelect.classList.remove('hidden');
+        if (mode === 'cpu') {
+          cpuTypeBox.style.display = 'block';
+        } else {
+          cpuTypeBox.style.display = 'none';
+        }
+      }
     }, 550);
   }
   function showModeSelect() {
     appState = 'menu'; mode = null;
-    document.body.classList.remove('mode-marathon', 'mode-cpu', 'mode-infinity');
+    document.body.classList.remove('mode-marathon', 'mode-cpu', 'mode-infinity', 'mode-online');
     window.audio.stopBGM();
     gameFrame.classList.add('hidden'); cpuFrame.classList.add('hidden');
+    typeSelect.classList.add('hidden');
+    $('onlineLobby').classList.add('hidden');
+    $('shopPanel').classList.add('hidden');
     modeSelect.classList.remove('hidden'); modeBgCanvas.classList.add('visible');
     modeCards.forEach(c => { c.classList.remove('selecting', 'dismissing'); c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; c.style.transform = ''; });
   }
@@ -1522,6 +3314,8 @@
     b.particles.length = 0;
     b.current = null;
     b.pendingGarbage = 0;
+    updateWarningQueue(b);
+    b.puyoChain = 0;
     b.cpuTarget = null; b.cpuActionTimer = 0;
     if (b.popupLayer) b.popupLayer.innerHTML = '';
     hideOverlay(b);
@@ -1620,6 +3414,9 @@
 
   applyDisplaySettings();
   applyAudioSettings();
+  applyActiveSkin();
+  applyActiveBg();
+  updateCustomizeDropdowns();
   lastTime = performance.now();
   requestAnimationFrame(loop);
 })();
