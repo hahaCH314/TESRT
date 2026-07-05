@@ -128,6 +128,8 @@
         case 'puyoPlace':  return this._tone({ freq: 150, dur: 0.05, type: 'sine',     vol: 0.40 });
         case 'puyoPop':    return this._puyoPopFx();
         case 'puyoChain':  return this._puyoChainFx(arg);
+        case 'danger':     return this._dangerAlarm();
+        case 'allClear':   return this._allClearFanfare();
       }
     }
 
@@ -253,6 +255,70 @@
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
         osc.connect(g).connect(this.seGain);
         osc.start(t); osc.stop(t + 0.2);
+      });
+    }
+    _dangerAlarm() {
+      const t0 = this.ctx.currentTime;
+      // Ominous low alarm pulse
+      for (let i = 0; i < 3; i++) {
+        const t = t0 + i * 0.18;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(110, t);
+        osc.frequency.exponentialRampToValueAtTime(65, t + 0.14);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.5, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        osc.connect(g).connect(this.seGain);
+        osc.start(t); osc.stop(t + 0.18);
+      }
+      // Rumble noise bed
+      const sr = this.ctx.sampleRate;
+      const buf = this.ctx.createBuffer(1, sr * 0.5, sr);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length) * 0.3;
+      }
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const ng = this.ctx.createGain();
+      ng.gain.value = 0.2;
+      src.connect(ng).connect(this.seGain);
+      src.start(t0);
+    }
+
+    _allClearFanfare() {
+      const t0 = this.ctx.currentTime;
+      // Triumphant ascending brass hits
+      const fanfare = [
+        [523, 0.00], [659, 0.08], [784, 0.16], [1047, 0.24],
+        [1319, 0.36], [1568, 0.44], [2093, 0.52]
+      ];
+      fanfare.forEach(([f, off]) => {
+        const t = t0 + off;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.45, t + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc.connect(g).connect(this.seGain);
+        osc.start(t); osc.stop(t + 0.27);
+      });
+      // Sustained triumph chord
+      [1047, 1319, 1568, 2093].forEach(f => {
+        const t = t0 + 0.6;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.35, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+        osc.connect(g).connect(this.seGain);
+        osc.start(t); osc.stop(t + 0.82);
       });
     }
 

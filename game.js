@@ -2652,58 +2652,244 @@
     const overlay = $('gachaOverlay');
     const capsule = $('gachaCapsule');
     const card = $('gachaResultCard');
-    
+    const rings = $('gachaRings');
+    const glowBack = $('gachaGlowBack');
+    const particlesContainer = $('gachaParticles');
+    const secretAlert = $('gachaSecretAlert');
+    const isSecret = (itemKey === 'ghoul' || itemKey === 'kaiju');
+
+    // Reset everything
     overlay.classList.remove('hidden');
     card.classList.add('hidden');
+    card.classList.remove('gacha-card-secret');
+    secretAlert.classList.add('hidden');
+    secretAlert.style.opacity = '0';
     capsule.style.display = 'block';
     capsule.textContent = itemType === 'skin' ? '🎁' : '🖼️';
-    
-    // GSAP Shake & Pop animation
+    rings.style.transform = 'scale(0.6) rotate(0deg)';
+    rings.style.opacity = '0';
+    glowBack.style.transform = 'scale(0.5) rotate(0deg)';
+    glowBack.style.opacity = '0';
+    particlesContainer.innerHTML = '';
+    overlay.style.background = 'rgba(15,23,42,0.95)';
+
+    window.audio.playSE('hold');
     const tl = gsap.timeline();
-    tl.to(capsule, { duration: 0.1, x: -12, repeat: 7, yoyo: true })
-      .to(capsule, { duration: 0.15, y: -30, scale: 1.15, ease: "power1.out" })
-      .to(capsule, { duration: 0.2, y: 0, scale: 1.0, ease: "bounce.out" })
-      .to(capsule, { duration: 0.2, scale: 1.8, opacity: 0, ease: "power2.in", onComplete: () => {
+
+    // ── Phase 1: Magic circle + shake (shared) ──
+    tl.to(rings, { duration: 0.8, scale: 1.1, opacity: 0.8, ease: "back.out(1.2)" }, 0)
+      .to(rings, { duration: 3, rotation: 360, ease: "none", repeat: -1 }, 0);
+    tl.to(capsule, { duration: 0.1, x: -8, yoyo: true, repeat: 5 }, 0.2)
+      .to(capsule, { duration: 0.08, x: 15, scale: 1.1, yoyo: true, repeat: 8, onStart: () => {
+        window.audio.playSE('rotate');
+      }}, 0.7)
+      .to(capsule, { duration: 0.05, x: -25, y: -20, scale: 1.25, yoyo: true, repeat: 12, onStart: () => {
+        window.audio.playSE('combo');
+        if (settings.display.flash) triggerFlash('impact');
+      }}, 1.4);
+
+    if (isSecret) {
+      // ══════════════════════════════════════════
+      //  SECRET CONFIRMED — LEGENDARY SEQUENCE
+      // ══════════════════════════════════════════
+
+      // Phase 2S: Sudden freeze — capsule stops, everything goes pitch black
+      tl.to(capsule, { duration: 0.15, scale: 1.0, x: 0, y: 0, ease: "power4.out" }, 2.1)
+        .to(rings, { duration: 0.3, opacity: 0, scale: 0.3, ease: "power2.in" }, 2.1)
+        .to(overlay, { duration: 0.5, background: 'rgba(0,0,0,1)', ease: "power2.in" }, 2.1);
+
+      // Phase 3S: WARNING flash — screen goes blood red, text slams in
+      tl.add(() => {
+        secretAlert.classList.remove('hidden');
+        window.audio.playSE('danger');
+      }, 2.8);
+      tl.to(secretAlert, { duration: 0.08, opacity: 1, ease: "none" }, 2.8)
+        .to(secretAlert, { duration: 0.1, opacity: 0, ease: "none" }, 2.95)
+        .to(secretAlert, { duration: 0.08, opacity: 1, ease: "none" }, 3.1)
+        .to(secretAlert, { duration: 0.1, opacity: 0, ease: "none" }, 3.25)
+        .to(secretAlert, { duration: 0.15, opacity: 1, ease: "none" }, 3.4);
+
+      // Phase 4S: Screen flashes white then shifts to deep crimson aura
+      tl.to(overlay, { duration: 0.06, background: 'rgba(255,255,255,0.9)', ease: "none" }, 3.7)
+        .to(overlay, { duration: 0.5, background: 'radial-gradient(circle, rgba(127,29,29,0.98) 0%, rgba(0,0,0,0.99) 70%)', ease: "power2.out", onStart: () => {
+          window.audio.playSE('allClear');
+          secretAlert.classList.add('hidden');
+          secretAlert.style.opacity = '0';
+        }}, 3.8);
+
+      // Phase 5S: Capsule transforms to golden and vibrates violently
+      tl.to(capsule, { duration: 0.01, onComplete: () => {
+        capsule.textContent = '🌟';
+        capsule.style.filter = 'drop-shadow(0 0 30px rgba(251,191,36,0.9))';
+      }}, 3.9);
+      tl.fromTo(capsule, { scale: 0.1, opacity: 0 }, { duration: 0.4, scale: 1.4, opacity: 1, ease: "elastic.out(1.2, 0.4)" }, 3.9)
+        .to(capsule, { duration: 0.04, x: -20, yoyo: true, repeat: 30, ease: "none", onStart: () => {
+          window.audio.playSE('combo');
+        }}, 4.4);
+
+      // Phase 6S: Triple explosion waves
+      tl.add(() => {
         capsule.style.display = 'none';
         capsule.style.opacity = 1;
         capsule.style.transform = '';
+        capsule.style.filter = '';
+
+        // Wave 1 — golden sparks
+        spawnExplosion(particlesContainer, ['#fbbf24', '#f59e0b', '#fcd34d', '#fff'], 30, 200);
+        window.audio.playSE('levelUp');
+      }, 5.8);
+      tl.add(() => {
+        // Wave 2 — crimson + white
+        spawnExplosion(particlesContainer, ['#ef4444', '#dc2626', '#ffffff', '#fca5a5'], 35, 300);
+        window.audio.playSE('tetris');
+        if (settings.display.flash) triggerFlash('impact');
+      }, 6.2);
+      tl.add(() => {
+        // Wave 3 — rainbow
+        spawnExplosion(particlesContainer, ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#fff'], 50, 400);
+        window.audio.playSE('allClear');
+      }, 6.6);
+
+      // Phase 7S: Crimson glow aura behind card
+      tl.fromTo(glowBack,
+        { scale: 0.2, opacity: 0, rotation: 0 },
+        { duration: 1.5, scale: 2.0, opacity: 1, rotation: 180, ease: "power2.out",
+          onStart: () => {
+            glowBack.style.background = 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, rgba(251,191,36,0.15) 40%, rgba(0,0,0,0) 70%)';
+          }
+        }, 6.8);
+      tl.to(glowBack, { duration: 8, rotation: 720, repeat: -1, ease: "none" }, 6.8);
+
+      // Phase 8S: Persistent golden particle rain
+      tl.add(() => {
+        startSecretParticleRain(particlesContainer);
+      }, 7.0);
+
+      // Phase 9S: Card reveal — dramatic slow rotation with rainbow border
+      tl.add(() => {
+        fillResultCard(itemType, itemKey, isNew, true);
         card.classList.remove('hidden');
-        
-        const item = itemType === 'skin' ? SKINS[itemKey] : BACKGROUNDS[itemKey];
-        $('gachaItemRarity').textContent = isNew ? 'NEW ITEM GET!' : 'DUPLICATE! (+50🪙)';
-        $('gachaItemRarity').style.color = isNew ? 'var(--cyan)' : 'var(--magenta)';
-        $('gachaItemName').textContent = item.name;
-        $('gachaItemDesc').textContent = item.desc;
-        
-        const preview = $('gachaItemPreview');
-        preview.innerHTML = '';
-        if (itemType === 'skin') {
-          const col = SKIN_COLORS[itemKey] || SKIN_COLORS.classic;
-          const block = document.createElement('div');
-          block.style.width = '35px';
-          block.style.height = '35px';
-          block.style.backgroundColor = col.I.base;
-          block.style.border = `3.5px solid ${col.I.light}`;
-          block.style.borderRadius = '8px';
-          block.style.boxShadow = `inset 0 0 6px ${col.I.dark}, 0 4px 10px rgba(0,0,0,0.15)`;
-          preview.appendChild(block);
-        } else {
-          const bg = BG_COLORS[itemKey] || BG_COLORS.default;
-          const bgBox = document.createElement('div');
-          bgBox.style.width = '100px';
-          bgBox.style.height = '48px';
-          bgBox.style.background = bg;
-          bgBox.style.borderRadius = '8px';
-          bgBox.style.border = '1.5px solid var(--border-color)';
-          preview.appendChild(bgBox);
-        }
-        
-        gsap.fromTo(card, 
-          { scale: 0.7, opacity: 0, rotationY: 90 },
-          { duration: 0.5, scale: 1, opacity: 1, rotationY: 0, ease: "back.out(1.5)" }
+        card.classList.add('gacha-card-secret');
+      }, 7.3);
+      tl.fromTo(card,
+        { scale: 0.2, opacity: 0, rotationY: -360, y: 150 },
+        { duration: 1.2, scale: 1, opacity: 1, rotationY: 0, y: 0, ease: "back.out(1.2)" }, 7.3);
+
+    } else {
+      // ══════════════════════════════════════════
+      //  NORMAL GACHA — Standard sequence
+      // ══════════════════════════════════════════
+      tl.to(capsule, { duration: 0.2, scale: 2.2, opacity: 0, ease: "power3.in", onComplete: () => {
+        capsule.style.display = 'none';
+        capsule.style.opacity = 1;
+        capsule.style.transform = '';
+
+        window.audio.playSE('levelUp');
+
+        gsap.fromTo(glowBack,
+          { scale: 0.2, opacity: 0, rotation: 0 },
+          { duration: 1.2, scale: 1.6, opacity: 1, rotation: 180, ease: "power2.out" }
+        );
+        gsap.to(glowBack, { duration: 6, rotation: 360, repeat: -1, ease: "none" });
+
+        spawnExplosion(particlesContainer, ['#ff0055', '#00aaff', '#aaff00', '#ffaa00', '#aa00ff', '#ffffff'], 40, 250);
+
+        fillResultCard(itemType, itemKey, isNew, false);
+        card.classList.remove('hidden');
+        gsap.fromTo(card,
+          { scale: 0.4, opacity: 0, rotationY: -180, y: 100 },
+          { duration: 0.8, scale: 1, opacity: 1, rotationY: 0, y: 0, ease: "back.out(1.4)" }
         );
         window.audio.playSE('tetris');
-      }});
+      }}, 2.3);
+    }
+  }
+
+  // ── Helper: fill the result card content ──
+  function fillResultCard(itemType, itemKey, isNew, isSecret) {
+    const item = itemType === 'skin' ? SKINS[itemKey] : BACKGROUNDS[itemKey];
+    const rarity = $('gachaItemRarity');
+
+    if (isSecret) {
+      rarity.textContent = '★ LEGENDARY SECRET ★';
+      rarity.style.color = '#ef4444';
+      rarity.style.textShadow = '0 0 12px rgba(239,68,68,0.8), 0 0 30px rgba(239,68,68,0.4)';
+    } else {
+      rarity.textContent = isNew ? 'NEW ITEM GET!' : 'DUPLICATE! (+50🪙)';
+      rarity.style.color = isNew ? '#0ea5e9' : '#db2777';
+      rarity.style.textShadow = '';
+    }
+
+    $('gachaItemName').textContent = item.name;
+    $('gachaItemDesc').textContent = item.desc;
+
+    const preview = $('gachaItemPreview');
+    preview.innerHTML = '';
+    if (itemType === 'skin') {
+      const col = SKIN_COLORS[itemKey] || SKIN_COLORS.classic;
+      const block = document.createElement('div');
+      block.style.cssText = `width:38px;height:38px;background:${col.I.base};border:3.5px solid ${col.I.light};border-radius:8px;box-shadow:inset 0 0 6px ${col.I.dark}, 0 4px 12px ${col.I.base};`;
+      preview.appendChild(block);
+    } else {
+      const bg = BG_COLORS[itemKey] || BG_COLORS.default;
+      const bgBox = document.createElement('div');
+      bgBox.style.cssText = `width:120px;height:56px;background:${bg};border-radius:10px;border:2px solid var(--border-color);`;
+      if (itemKey === 'ghoul' || itemKey === 'kaiju') {
+        bgBox.style.backgroundSize = 'cover';
+        bgBox.style.backgroundPosition = 'center';
+      }
+      preview.appendChild(bgBox);
+    }
+  }
+
+  // ── Helper: spawn radial explosion particles ──
+  function spawnExplosion(container, colors, count, maxRadius) {
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      const size = Math.random() * 12 + 5;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      p.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color};left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 ${size}px ${color};pointer-events:none;`;
+      container.appendChild(p);
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * maxRadius + 80;
+      gsap.to(p, {
+        duration: Math.random() * 1.0 + 0.5,
+        x: Math.cos(angle) * speed,
+        y: Math.sin(angle) * speed,
+        scale: 0.05,
+        opacity: 0,
+        ease: "power2.out",
+        onComplete: () => p.remove()
+      });
+    }
+  }
+
+  // ── Helper: persistent golden particle rain for secret ──
+  let _secretRainInterval = null;
+  function startSecretParticleRain(container) {
+    stopSecretParticleRain();
+    const rainColors = ['#fbbf24', '#f59e0b', '#fcd34d', '#ef4444', '#ffffff'];
+    _secretRainInterval = setInterval(() => {
+      for (let i = 0; i < 3; i++) {
+        const p = document.createElement('div');
+        const size = Math.random() * 6 + 3;
+        const color = rainColors[Math.floor(Math.random() * rainColors.length)];
+        const startX = Math.random() * 100;
+        p.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color};left:${startX}%;top:-5%;opacity:0.8;box-shadow:0 0 8px ${color};pointer-events:none;`;
+        container.appendChild(p);
+        gsap.to(p, {
+          duration: Math.random() * 2 + 1.5,
+          y: window.innerHeight + 50,
+          x: (Math.random() - 0.5) * 100,
+          opacity: 0,
+          ease: "none",
+          onComplete: () => p.remove()
+        });
+      }
+    }, 120);
+  }
+  function stopSecretParticleRain() {
+    if (_secretRainInterval) { clearInterval(_secretRainInterval); _secretRainInterval = null; }
   }
 
   function pullGacha(type) {
@@ -2749,6 +2935,11 @@
   $('pullSkinGachaBtn').addEventListener('click', () => pullGacha('skin'));
   $('pullBgGachaBtn').addEventListener('click', () => pullGacha('bg'));
   $('gachaOkBtn').addEventListener('click', () => {
+    stopSecretParticleRain();
+    gsap.killTweensOf([$('gachaRings'), $('gachaGlowBack'), $('gachaCapsule'), $('gachaResultCard')]);
+    $('gachaResultCard').classList.remove('gacha-card-secret');
+    $('gachaParticles').innerHTML = '';
+    $('gachaOverlay').style.background = 'rgba(15,23,42,0.95)';
     $('gachaOverlay').classList.add('hidden');
     updateShopUI();
     updateCustomizeDropdowns();
