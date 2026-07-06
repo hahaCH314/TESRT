@@ -593,6 +593,11 @@
       ];
       const spellText = spells[idx];
       if ('speechSynthesis' in window && this.seEnabled) {
+        // Prevent voice playback if the game is paused
+        if (window.paused) {
+          window.speechSynthesis.cancel();
+          return;
+        }
         const uttr = new SpeechSynthesisUtterance(spellText);
         uttr.lang = 'ja-JP';
         uttr.pitch = 1.7; // Cute, high-pitched anime voice style

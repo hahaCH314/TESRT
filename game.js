@@ -2423,7 +2423,7 @@
   function cpuStep(b, dt) {
     if (!b.current || b.gameOver || paused || b.flashing) return;
     
-    if (settings.cpu.difficulty === 'hoiko' && window.Hoiko) {
+    if (settings.cpu.difficulty === 'hoiko' && window.TFHoiko) {
       // hoikoSpeed value: 0 to 100
       // 100 = 0ms delay (instant teleport)
       // 0 = 2000ms delay
@@ -2435,7 +2435,7 @@
       if (b.cpuActionTimer < delay) return;
       b.cpuActionTimer = 0;
       
-      window.Hoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides);
+      window.TFHoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides);
       return;
     }
 
@@ -2692,11 +2692,14 @@
   function togglePause() {
     if (playerBoard.gameOver || matchEnded) return;
     paused = !paused;
+    window.paused = paused; // Expose to window for audio engine check
     const now = performance.now();
     if (paused) {
       pauseStarted = now;
       for (const b of activeBoards) showOverlay(b, 'PAUSED', 'Press P to resume');
-      window.audio.stopBGM(); window.audio.playSE('pause');
+      window.audio.stopBGM(); 
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel(); // Stop any pending voice lines instantly!
+      window.audio.playSE('pause');
     } else {
       if (pauseStarted) pausedTotal += now - pauseStarted; pauseStarted = 0;
       hideAllOverlays(); window.audio.startBGM(); window.audio.playSE('pause');

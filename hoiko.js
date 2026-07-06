@@ -139,9 +139,9 @@
         let complete = 0;
         for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
         if (complete > 0) {
-          if (complete === 4) score += 50.0;
-          else if (complete >= 2) score += 20.0;
-          else score -= 12.0; // 通常時の無駄なシングルは温存
+          if (complete === 4) score += 65.0; // テトリスは最優先で撃つ
+          else if (complete >= 2) score += 30.0;
+          else score += 5.0; // 攻めてこない時でもチクチク攻撃＆盤面整理のためにシングルも許容（ペナルティ撤廃）
         }
       }
 
@@ -249,7 +249,10 @@
           let y = -3;
           const testPiece = { type: piece.type, matrix, x, y };
           if (checkCollide({ ...testPiece }, snapshot)) continue;
-          while (!checkCollide({ ...testPiece, y: y + 1 }, snapshot)) { y++; if (y >= ROWS) break; }
+          while (!checkCollide({ ...testPiece, y: y + 1 }, snapshot)) {
+            y++;
+            if (y >= ROWS) break;
+          }
           if (y < 0) continue;
           testPiece.y = y;
           const simGrid = snapshot.map(r => r.slice());
