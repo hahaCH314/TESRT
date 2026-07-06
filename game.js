@@ -525,11 +525,11 @@
       c.beginPath(); c.moveTo(cx + 2, cy - 4); c.lineTo(cx + 7, cy + 1); c.stroke();
       c.beginPath(); c.moveTo(cx + 7, cy - 4); c.lineTo(cx + 2, cy + 1); c.stroke();
     } else if (anim && anim.blink) {
-      // ── Blinking: two closed, happy curved eyes (‿ ‿), no mouth ──
+      // ── Blinking: closed, happy curved eyes (‿ ‿) ──
       const eyeCY = cy + s * 0.02;
       const eyeDX = s * 0.185;
       c.strokeStyle = colors.dark;
-      c.lineWidth = Math.max(2, s * 0.05);
+      c.lineWidth = Math.max(2, s * 0.06);
       c.lineCap = 'round';
       c.beginPath();
       c.arc(cx - eyeDX, eyeCY - s * 0.05, s * 0.16, 0.15 * Math.PI, 0.85 * Math.PI);
@@ -538,26 +538,173 @@
       c.arc(cx + eyeDX, eyeCY - s * 0.05, s * 0.16, 0.15 * Math.PI, 0.85 * Math.PI);
       c.stroke();
     } else {
-      // ── Authentic Puyo eyes: big pointed-top white pair meeting at center ──
       const eyeCY = cy + s * 0.02;
-      const eyeDX = s * 0.17;
-      const ew = s * 0.205;
-      const eh = s * 0.335;
-      const lean = 0.22;
-      // Tops splay outward (bottoms converge to center) -> classic M silhouette.
-      drawPuyoPointedEye(c, cx - eyeDX, eyeCY, ew, eh, -lean, colors.dark);
-      drawPuyoPointedEye(c, cx + eyeDX, eyeCY, ew, eh, lean, colors.dark);
-      // Forward-facing black pupils, big, slightly low and toward center.
-      const pupilR = s * 0.115;
-      const pupilDX = s * 0.145;
-      const pupilY = eyeCY + s * 0.075;
-      c.fillStyle = '#111111';
-      c.beginPath(); c.arc(cx - pupilDX, pupilY, pupilR, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.arc(cx + pupilDX, pupilY, pupilR, 0, Math.PI * 2); c.fill();
-      // Sparkle highlights (top-left of each pupil).
-      c.fillStyle = 'rgba(255,255,255,0.92)';
-      c.beginPath(); c.arc(cx - pupilDX - pupilR * 0.3, pupilY - pupilR * 0.35, pupilR * 0.4, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.arc(cx + pupilDX - pupilR * 0.3, pupilY - pupilR * 0.35, pupilR * 0.4, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = colors.dark;
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
+
+      if (type === 'Y') {
+        // ── Yellow Puyo: Happy arc closed eyes (⌒ ⌒) ──
+        const eyeDX = s * 0.17;
+        c.lineWidth = Math.max(2.5, s * 0.08);
+        c.beginPath();
+        c.arc(cx - eyeDX, eyeCY + s * 0.08, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
+        c.stroke();
+        c.beginPath();
+        c.arc(cx + eyeDX, eyeCY + s * 0.08, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
+        c.stroke();
+      } 
+      else if (type === 'R') {
+        // ── Red Puyo: Angry eyes ──
+        const drawAngryEye = (isLeft) => {
+          c.save();
+          const ex = cx + (isLeft ? -s * 0.16 : s * 0.16);
+          c.translate(ex, eyeCY);
+          if (!isLeft) c.scale(-1, 1);
+          
+          c.beginPath();
+          c.moveTo(-s * 0.18, -s * 0.12); // outer-top
+          c.lineTo(s * 0.15, -s * 0.02);  // inner-top (angry slant)
+          c.bezierCurveTo(s * 0.18, s * 0.18, -s * 0.05, s * 0.22, -s * 0.18, s * 0.02); // round bottom
+          c.closePath();
+          c.fillStyle = '#ffffff';
+          c.fill();
+          c.lineWidth = 1.2;
+          c.strokeStyle = colors.dark;
+          c.stroke();
+
+          // Angry pupil
+          c.save();
+          c.clip();
+          c.fillStyle = '#111111';
+          c.beginPath();
+          c.arc(0, s * 0.08, s * 0.11, 0, Math.PI * 2);
+          c.fill();
+          // Sparkle highlight
+          c.fillStyle = '#ffffff';
+          c.beginPath();
+          c.arc(-s * 0.03, s * 0.04, s * 0.04, 0, Math.PI * 2);
+          c.fill();
+          c.restore();
+          c.restore();
+        };
+        drawAngryEye(true);
+        drawAngryEye(false);
+      }
+      else if (type === 'B') {
+        // ── Blue Puyo: Connected droopy eyes ──
+        c.save();
+        const drawBlueEyeSclera = (isLeft) => {
+          const ex = cx + (isLeft ? -s * 0.155 : s * 0.155);
+          c.save();
+          c.translate(ex, eyeCY);
+          if (!isLeft) c.scale(-1, 1);
+          c.beginPath();
+          c.moveTo(s * 0.02, -s * 0.08); // center connect point
+          c.bezierCurveTo(-s * 0.08, -s * 0.18, -s * 0.22, -s * 0.12, -s * 0.22, s * 0.05); // outer curve
+          c.bezierCurveTo(-s * 0.22, s * 0.22, s * 0.02, s * 0.22, s * 0.02, -s * 0.08); // bottom round
+          c.closePath();
+          c.fillStyle = '#ffffff';
+          c.fill();
+          c.lineWidth = 1.2;
+          c.strokeStyle = colors.dark;
+          c.stroke();
+          c.restore();
+        };
+        drawBlueEyeSclera(true);
+        drawBlueEyeSclera(false);
+
+        // Pupils
+        const drawBluePupil = (isLeft) => {
+          const ex = cx + (isLeft ? -s * 0.12 : s * 0.12);
+          c.save();
+          c.translate(ex, eyeCY + s * 0.06);
+          c.fillStyle = '#111111';
+          c.beginPath();
+          c.arc(0, 0, s * 0.11, 0, Math.PI * 2);
+          c.fill();
+          // Highlight
+          c.fillStyle = '#ffffff';
+          c.beginPath();
+          c.arc(-s * 0.03, -s * 0.03, s * 0.04, 0, Math.PI * 2);
+          c.fill();
+          c.restore();
+        };
+        drawBluePupil(true);
+        drawBluePupil(false);
+        c.restore();
+      }
+      else if (type === 'P') {
+        // ── Purple Puyo: Sleepy horizontal eyes ──
+        const drawSleepyEye = (isLeft) => {
+          c.save();
+          const ex = cx + (isLeft ? -s * 0.17 : s * 0.17);
+          c.translate(ex, eyeCY);
+          if (!isLeft) c.scale(-1, 1);
+          
+          c.beginPath();
+          c.ellipse(0, 0, s * 0.18, s * 0.12, 0.1, 0, Math.PI * 2);
+          c.fillStyle = '#ffffff';
+          c.fill();
+          c.lineWidth = 1.2;
+          c.strokeStyle = colors.dark;
+          c.stroke();
+
+          // Sleepy pupil
+          c.save();
+          c.clip();
+          c.fillStyle = '#111111';
+          c.beginPath();
+          c.ellipse(-s * 0.02, s * 0.04, s * 0.13, s * 0.09, 0, 0, Math.PI * 2);
+          c.fill();
+          // Highlight
+          c.fillStyle = '#ffffff';
+          c.beginPath();
+          c.arc(-s * 0.05, s * 0.01, s * 0.035, 0, Math.PI * 2);
+          c.fill();
+          c.restore();
+          c.restore();
+        };
+        drawSleepyEye(true);
+        drawSleepyEye(false);
+      }
+      else {
+        // ── Green Puyo & Default: Big round cute eyes (寄り目) ──
+        const drawGreenEye = (isLeft) => {
+          c.save();
+          const ex = cx + (isLeft ? -s * 0.155 : s * 0.155);
+          c.translate(ex, eyeCY);
+          c.beginPath();
+          c.ellipse(0, 0, s * 0.17, s * 0.19, 0, 0, Math.PI * 2);
+          c.fillStyle = '#ffffff';
+          c.fill();
+          c.lineWidth = 1.2;
+          c.strokeStyle = colors.dark;
+          c.stroke();
+          c.restore();
+        };
+        drawGreenEye(true);
+        drawGreenEye(false);
+
+        // Pupils
+        const drawGreenPupil = (isLeft) => {
+          c.save();
+          const ex = cx + (isLeft ? -s * 0.105 : s * 0.105);
+          c.translate(ex, eyeCY + s * 0.04);
+          c.fillStyle = '#111111';
+          c.beginPath();
+          c.arc(0, 0, s * 0.11, 0, Math.PI * 2);
+          c.fill();
+          // Sparkle highlights
+          c.fillStyle = '#ffffff';
+          c.beginPath();
+          c.arc(-s * 0.03, -s * 0.03, s * 0.04, 0, Math.PI * 2);
+          c.fill();
+          c.restore();
+        };
+        drawGreenPupil(true);
+        drawGreenPupil(false);
+      }
     }
 
     // ── Pre-pop white flash overlay (about to burst) ──
