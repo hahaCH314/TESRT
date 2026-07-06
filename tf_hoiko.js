@@ -258,52 +258,68 @@
           const candidates = [];
           
           for (let i = 0; i < 40; i++) {
-            if (scores[i] > -500.0) {
+            if (scores[i] > -900.0) {
               const rot = Math.floor(i / 10);
-              const x = i % 10;
+              let x = i % 10;
               
               const shapes = ROTATIONS[b.current.type];
               if (rot < shapes.length) {
                 const matrix = shapes[rot];
                 
-                // Simulate drop to check validity
-                let y = -3;
-                const checkCollide = (p, grid) => {
-                  for (let r = 0; r < p.matrix.length; r++) {
-                    for (let c = 0; c < p.matrix[r].length; c++) {
-                      if (p.matrix[r][c]) {
-                        const ny = p.y + r, nx = p.x + c;
-                        if (ny >= 20 || nx < 0 || nx >= 10) return true;
-                        if (ny >= 0 && grid[ny] && grid[ny][nx]) return true;
+                // Allow sliding slightly off-grid horizontally if the shape matrix allows it
+                // Align x coordinates properly to handle wall boundaries
+                for (let shiftX = -2; shiftX <= 2; shiftX++) {
+                  const targetX = x + shiftX;
+                  let ok = true;
+                  for (let r = 0; r < matrix.length && ok; r++) {
+                    for (let c = 0; c < matrix[r].length && ok; c++) {
+                      if (matrix[r][c]) {
+                        const nx = targetX + c;
+                        if (nx < 0 || nx >= 10) ok = false;
                       }
                     }
                   }
-                  return false;
-                };
-                
-                const testPiece = { type: b.current.type, matrix, x, y };
-                if (!checkCollide({ ...testPiece }, b.grid)) {
-                  while (!checkCollide({ ...testPiece, y: y + 1 }, b.grid)) {
-                    y++;
-                    if (y >= 20) break;
-                  }
-                  if (y >= 0) {
-                    // Evaluate this exact predicted drop with the refined heuristic
-                    const simGrid = b.grid.map(r => r.slice());
-                    matrix.forEach((row, r) => row.forEach((v, c) => {
-                      if (v && y + r >= 0 && y + r < 20) simGrid[y + r][x + c] = b.current.type;
-                    }));
-                    const actualScore = window.Hoiko ? window.Hoiko.evaluateGrid(simGrid) : scores[i];
-                    
-                    // Add to hybrid candidates
-                    candidates.push({
-                      x,
-                      y,
-                      rotation: rot,
-                      matrix,
-                      nnScore: scores[i],
-                      actualScore: actualScore
-                    });
+                  if (!ok) continue;
+                  
+                  // Simulate drop to check validity
+                  let y = -3;
+                  const checkCollide = (p, grid) => {
+                    for (let r = 0; r < p.matrix.length; r++) {
+                      for (let c = 0; c < p.matrix[r].length; c++) {
+                        if (p.matrix[r][c]) {
+                          const ny = p.y + r, nx = p.x + c;
+                          if (ny >= 20 || nx < 0 || nx >= 10) return true;
+                          if (ny >= 0 && grid[ny] && grid[ny][nx]) return true;
+                        }
+                      }
+                    }
+                    return false;
+                  };
+                  
+                  const testPiece = { type: b.current.type, matrix, x: targetX, y };
+                  if (!checkCollide({ ...testPiece }, b.grid)) {
+                    while (!checkCollide({ ...testPiece, y: y + 1 }, b.grid)) {
+                      y++;
+                      if (y >= 20) break;
+                    }
+                    if (y >= 0) {
+                      // Evaluate this exact predicted drop with the refined heuristic
+                      const simGrid = b.grid.map(r => r.slice());
+                      matrix.forEach((row, r) => row.forEach((v, c) => {
+                        if (v && y + r >= 0 && y + r < 20) simGrid[y + r][targetX + c] = b.current.type;
+                      }));
+                      const actualScore = window.Hoiko ? window.Hoiko.evaluateGrid(simGrid) : scores[i];
+                      
+                      // Add to hybrid candidates
+                      candidates.push({
+                        x: targetX,
+                        y,
+                        rotation: rot,
+                        matrix,
+                        nnScore: scores[i],
+                        actualScore: actualScore
+                      });
+                    }
                   }
                 }
               }

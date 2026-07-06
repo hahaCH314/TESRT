@@ -118,7 +118,7 @@
         
         score -= holes * 500.0;    // 穴は一切作らない
         score -= bumpiness * 25.0;  // 平坦度を保つ
-        score -= totalH * 8.0;      // 常にスタックを低く
+        score -= maxH * 8.0;      // 常にスタックを低く
         
         let complete = 0;
         for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
