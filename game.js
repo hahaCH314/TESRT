@@ -2422,10 +2422,13 @@
   }
   function cpuStep(b, dt) {
     if (!b.current || b.gameOver || paused || b.flashing) return;
-    
+
     if (settings.cpu.difficulty === 'hoiko' && window.TFHoiko) {
-      // Ultimate 0ms delay for the match against Natto Cider
-      const delay = 0;
+      if (!b.startSafetyFrames) b.startSafetyFrames = 0;
+      if (b.startSafetyFrames < 15) {
+        b.startSafetyFrames++;
+        return;
+      }
       window.TFHoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides);
       return;
     }
@@ -3818,8 +3821,8 @@
     if (b.popupLayer) b.popupLayer.innerHTML = '';
     hideOverlay(b);
     refillQueue(b);
-    spawn(b);
     b.startSafetyFrames = 0;
+    spawn(b);
     updateHud(b);
     drawHold(b);
   }
