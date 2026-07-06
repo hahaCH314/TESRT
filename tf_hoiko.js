@@ -315,5 +315,40 @@
     }
   };
   
+  // Expose to window
   window.TFHoiko = TFHoiko;
+
+  // Run model loading & training asynchronously as soon as the script is loaded.
+  // This ensures the model is fully trained by the time the user starts playing or hoiko steps.
+  setTimeout(() => {
+    // Generate the standard ROTATIONS if not already initialized in game.js
+    if (!window.gameROTATIONS) {
+      const shapes = {
+        I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+        J: [[1,0,0],[1,1,1],[0,0,0]],
+        L: [[0,0,1],[1,1,1],[0,0,0]],
+        O: [[1,1],[1,1]],
+        S: [[0,1,1],[1,1,0],[0,0,0]],
+        T: [[0,1,0],[1,1,1],[0,0,0]],
+        Z: [[1,1,0],[0,1,1],[0,0,0]],
+      };
+      const rotateMatrix = (matrix, dir) => {
+        const n = matrix.length;
+        const res = Array.from({ length: n }, () => Array(n).fill(0));
+        for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+          if (dir > 0) res[c][n - 1 - r] = matrix[r][c];
+          else res[n - 1 - c][r] = matrix[r][c];
+        }
+        return res;
+      };
+      const rots = {};
+      for (const t of Object.keys(shapes)) {
+        const arr = [shapes[t]];
+        for (let i = 0; i < 3; i++) arr.push(rotateMatrix(arr[arr.length - 1], 1));
+        rots[t] = arr;
+      }
+      window.gameROTATIONS = rots;
+    }
+    TFHoiko.initModel();
+  }, 100);
 })();
