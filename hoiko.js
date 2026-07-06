@@ -31,7 +31,6 @@
       const minH = Math.min(...heights);
       const avgH = heights.reduce((a, b) => a + b, 0) / COLS;
       
-      // Calculate overall roughness (bumpiness)
       let bumpiness = 0;
       for (let i = 0; i < COLS - 1; i++) {
         bumpiness += Math.abs(heights[i] - heights[i+1]);
@@ -40,88 +39,73 @@
       let score = 0;
 
       // 1. STATE DETERMINATION (状況分析)
-      const isPinch = (maxH >= 11); // ピンチ判定 (11段以上積まれている)
-      const isFlat = (bumpiness <= 4 && maxH <= 6); // 平坦判定 (凹凸が少なく、高さが低い)
-      const isJagged = (bumpiness >= 8); // デコボコ判定
+      const isPinch = (maxH >= 11); // ピンチ判定
+      const isFlat = (bumpiness <= 3 && maxH <= 5); // 真っ平ら判定
+      const isJagged = (bumpiness >= 6); // デコボコ判定
 
-      // 2. STATE-BASED STRATEGY (状況ごとの戦略重み付け)
+      // 2. STATE-BASED STRATEGY (状況ごとの戦略重み付け - 最強チューニング)
       if (isPinch) {
-        // 【ピンチモード：REN・相殺・緊急防御】
-        // REN(コンボ)を繋ぎやすくするために右側を空けつつ、積極的に消しにかかる
+        // 【超攻撃・緊急回避防御】
         const leftH = heights.slice(0, 6);
         const rightH = heights.slice(6, 10);
         const maxLeftH = Math.max(...leftH);
         const maxRightH = Math.max(...rightH);
         const s4wGap = maxLeftH - maxRightH;
         
-        // S4W(サイド4ワイド)のREN構築を支援
         if (s4wGap >= 3 && maxRightH <= 4) {
-          score += 25.0; // ピンチ時はRENでの大逆転を狙い、S4Wの加点を高める
+          score += 150.0; // ピンチ時ほどRENで瞬殺を狙う
         }
         
-        // 穴や高さへの超絶ペナルティ
-        score -= holes * 60.0;
-        score -= maxH * 8.0;
+        score -= holes * 600.0; // 穴埋め最優先
+        score -= maxH * 50.0;   // 全力で盤面を下げる
         
-        // とにかくライン消去（シングルでも何でも歓迎して盤面を下げる）
         let complete = 0;
         for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
         if (complete > 0) {
-          score += complete * 25.0; // 消せば消すほど良い
+          score += complete * 150.0; // 消せるだけ消してカウンター
         }
       } 
       else if (isFlat) {
-        // 【平坦モード：パフェ（Perfect Clear / PC）狙い】
-        // 盤面が完全に真っ平ら（ブロック数0）になるのを歓迎する
+        // 【超精密パフェ狙い】
         if (totalBlocks === 0) {
-          score += 150.0; // パフェ達成時の超絶加点
+          score += 5000.0; // パフェ達成時は神レベルの超加点
         }
         
-        // 穴は絶対NG（パフェの妨げ）
-        score -= holes * 80.0;
+        score -= holes * 1000.0; // 穴は完全排除
+        score -= bumpiness * 30.0; // フラットさの徹底
+        score -= maxH * 10.0;
         
-        // できるだけ平らに保つ
-        score -= bumpiness * 5.0;
-        score -= maxH * 1.5;
-        
-        // 消去時の加点
         let complete = 0;
         for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
         if (complete > 0) {
-          if (complete === 4) score += 40.0;
-          else score += 10.0;
+          if (complete === 4) score += 500.0; // パフェ直前のテトリス大歓迎
+          else score += 100.0;
         }
       } 
       else if (isJagged) {
-        // 【デコボコモード：T-spin 狙い】
-        // 意図的に溝（T-spinの形）を作ってT-spinによる高火力を狙う
+        // 【超火力T-spin特化】
         let tspinGrooves = 0;
         for (let c = 1; c < 9; c++) {
-          // 左右が高く、中央が2マス以上凹んでいるT-spin用の溝を検出
           if (heights[c-1] - heights[c] >= 2 && heights[c+1] - heights[c] >= 2) {
             tspinGrooves++;
           }
         }
-        score += tspinGrooves * 30.0; // T-spin用の溝構築への超強力なインセンティブ
+        score += tspinGrooves * 350.0; // T-spin用の溝構築へ圧倒的なインセンティブ
         
-        // 穴は作らない
-        score -= holes * 45.0;
-        // 高さは緩やかに制御
-        score -= maxH * 2.0;
+        score -= holes * 500.0;
+        score -= maxH * 15.0;
         
-        // T-spin Double (2ライン消去) や T-spin Triple などのマルチ消去を歓迎
         let complete = 0;
         for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
         if (complete > 0) {
-          if (complete === 2) score += 35.0; // T-spin Double想定の加点
-          else if (complete === 3) score += 40.0;
-          else if (complete === 4) score += 50.0;
-          else score -= 15.0; // 単なる1ライン消去はT-spin用の溝を壊すのでペナルティ
+          if (complete === 2) score += 400.0; // T-spin Double
+          else if (complete === 3) score += 600.0; // T-spin Triple
+          else if (complete === 4) score += 800.0; // Tetris
+          else score -= 80.0; // T-spinを邪魔するシングル消去は厳罰
         }
       } 
       else {
-        // 【通常モード：バランスプレイ】
-        // 安定したS4Wの構築と、安全な高さ維持
+        // 【通常モード：完璧なS4W & テトリス構築】
         const leftH = heights.slice(0, 6);
         const rightH = heights.slice(6, 10);
         const maxLeftH = Math.max(...leftH);
@@ -129,19 +113,19 @@
         const s4wGap = maxLeftH - maxRightH;
         
         if (maxLeftH < 12 && s4wGap >= 3 && maxRightH <= 4) {
-          score += 15.0; // S4Wのベース加点
+          score += 250.0; // S4Wタワーの構築を強力に支援
         }
         
-        score -= holes * 40.0;
-        score -= bumpiness * 1.5;
-        score -= totalH * 2.0;
+        score -= holes * 500.0;    // 穴は一切作らない
+        score -= bumpiness * 25.0;  // 平坦度を保つ
+        score -= totalH * 8.0;      // 常にスタックを低く
         
         let complete = 0;
         for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
         if (complete > 0) {
-          if (complete === 4) score += 65.0; // テトリスは最優先で撃つ
-          else if (complete >= 2) score += 30.0;
-          else score += 5.0; // 攻めてこない時でもチクチク攻撃＆盤面整理のためにシングルも許容（ペナルティ撤廃）
+          if (complete === 4) score += 800.0; // テトリス最優先
+          else if (complete >= 2) score += 300.0;
+          else score += 15.0; // 盤面整理のための1ライン消去も許容
         }
       }
 

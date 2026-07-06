@@ -32,32 +32,40 @@
     initModel: async function() {
       if (this.model) return;
       
-      console.log("%c[TFHoiko] ニューラルネットワークモデルを構築中...", "color: #ff0055; font-weight: bold;");
+      console.log("%c[TFHoiko] 超鬼畜ニューラルネットワークモデルを構築中...", "color: #ff0055; font-weight: bold;");
       const model = tf.sequential();
       
-      // Input layer + Hidden layer 1
+      // Input layer + Hidden layer 1 (wider layer for complex board patterns)
       model.add(tf.layers.dense({
         inputShape: [207],
-        units: 128,
+        units: 256,
         activation: 'relu',
         kernelInitializer: 'heNormal'
       }));
       
+      // Dropout to prevent overfitting on specific synthetic boards
+      model.add(tf.layers.dropout({ rate: 0.1 }));
+      
       // Hidden layer 2
+      model.add(tf.layers.dense({
+        units: 128,
+        activation: 'relu'
+      }));
+      
+      // Hidden layer 3
       model.add(tf.layers.dense({
         units: 64,
         activation: 'relu'
       }));
       
-      // Output layer: predicting ratings/scores for possible placements.
-      // There are 10 columns * 4 rotations = 40 possible outputs.
+      // Output layer: 40 classes (10 columns * 4 rotations)
       model.add(tf.layers.dense({
         units: 40,
         activation: 'linear'
       }));
       
       model.compile({
-        optimizer: tf.train.adam(0.005),
+        optimizer: tf.train.adam(0.003),
         loss: 'meanSquaredError'
       });
       
@@ -95,13 +103,14 @@
       };
       
       // Generate samples spanning different stack levels
-      const heights = [0, 2, 4, 6, 8, 10, 12];
+      const heights = [0, 2, 4, 6, 8, 10, 12, 14];
       
       // Reference standard Tetris rotation matrices from game.js
       const ROTATIONS = window.gameROTATIONS;
       
+      // Increase samples per height to 40 for more thorough training
       for (const h of heights) {
-        for (let sample = 0; sample < 15; sample++) {
+        for (let sample = 0; sample < 40; sample++) {
           const grid = makeRandomGrid(h);
           
           for (const type of types) {
@@ -175,15 +184,15 @@
       const xs = tf.tensor2d(inputs);
       const ys = tf.tensor2d(outputs);
       
-      // Train model
+      // Train model - Increase epochs to 80 for much better fit and accuracy
       await this.model.fit(xs, ys, {
-        epochs: 45,
-        batchSize: 32,
+        epochs: 80,
+        batchSize: 64,
         shuffle: true,
         callbacks: {
           onEpochEnd: (epoch, logs) => {
-            if ((epoch + 1) % 15 === 0) {
-              console.log(`[TFHoiko] 学習進行中... Epoch ${epoch + 1}/45 | Loss: ${logs.loss.toFixed(4)}`);
+            if ((epoch + 1) % 20 === 0) {
+              console.log(`[TFHoiko] 学習進行中... Epoch ${epoch + 1}/80 | Loss: ${logs.loss.toFixed(4)}`);
             }
           }
         }
@@ -245,51 +254,66 @@
           const prediction = this.model.predict(inputTensor);
           const scores = prediction.dataSync();
           
-          // Find maximum valid slot index
-          let maxVal = -Infinity;
-          let bestIdx = -1;
-          for (let i = 0; i < 40; i++) {
-            if (scores[i] > maxVal && scores[i] > -500.0) {
-              maxVal = scores[i];
-              bestIdx = i;
-            }
-          }
+          // Get all valid scores and indices
+          const candidates = [];
           
-          if (bestIdx !== -1) {
-            const rot = Math.floor(bestIdx / 10);
-            const x = bestIdx % 10;
-            
-            // Validate the placement coordinates
-            const shapes = ROTATIONS[b.current.type];
-            if (rot < shapes.length) {
-              const matrix = shapes[rot];
+          for (let i = 0; i < 40; i++) {
+            if (scores[i] > -500.0) {
+              const rot = Math.floor(i / 10);
+              const x = i % 10;
               
-              // Simulate drop to check validity
-              let y = -3;
-              const checkCollide = (p, grid) => {
-                for (let r = 0; r < p.matrix.length; r++) {
-                  for (let c = 0; c < p.matrix[r].length; c++) {
-                    if (p.matrix[r][c]) {
-                      const ny = p.y + r, nx = p.x + c;
-                      if (ny >= 20 || nx < 0 || nx >= 10) return true;
-                      if (ny >= 0 && grid[ny] && grid[ny][nx]) return true;
+              const shapes = ROTATIONS[b.current.type];
+              if (rot < shapes.length) {
+                const matrix = shapes[rot];
+                
+                // Simulate drop to check validity
+                let y = -3;
+                const checkCollide = (p, grid) => {
+                  for (let r = 0; r < p.matrix.length; r++) {
+                    for (let c = 0; c < p.matrix[r].length; c++) {
+                      if (p.matrix[r][c]) {
+                        const ny = p.y + r, nx = p.x + c;
+                        if (ny >= 20 || nx < 0 || nx >= 10) return true;
+                        if (ny >= 0 && grid[ny] && grid[ny][nx]) return true;
+                      }
                     }
                   }
-                }
-                return false;
-              };
-              
-              const testPiece = { type: b.current.type, matrix, x, y };
-              if (!checkCollide({ ...testPiece }, b.grid)) {
-                while (!checkCollide({ ...testPiece, y: y + 1 }, b.grid)) {
-                  y++;
-                  if (y >= 20) break;
-                }
-                if (y >= 0) {
-                  b.cpuTarget = { x, y, rotation: rot, matrix };
+                  return false;
+                };
+                
+                const testPiece = { type: b.current.type, matrix, x, y };
+                if (!checkCollide({ ...testPiece }, b.grid)) {
+                  while (!checkCollide({ ...testPiece, y: y + 1 }, b.grid)) {
+                    y++;
+                    if (y >= 20) break;
+                  }
+                  if (y >= 0) {
+                    // Evaluate this exact predicted drop with the refined heuristic
+                    const simGrid = b.grid.map(r => r.slice());
+                    matrix.forEach((row, r) => row.forEach((v, c) => {
+                      if (v && y + r >= 0 && y + r < 20) simGrid[y + r][x + c] = b.current.type;
+                    }));
+                    const actualScore = window.Hoiko ? window.Hoiko.evaluateGrid(simGrid) : scores[i];
+                    
+                    // Add to hybrid candidates
+                    candidates.push({
+                      x,
+                      y,
+                      rotation: rot,
+                      matrix,
+                      nnScore: scores[i],
+                      actualScore: actualScore
+                    });
+                  }
                 }
               }
             }
+          }
+          
+          if (candidates.length > 0) {
+            // Sort by actual heuristic score to ensure the hand is absolute top-tier
+            candidates.sort((a, b) => b.actualScore - a.actualScore);
+            b.cpuTarget = candidates[0];
           }
         });
         
