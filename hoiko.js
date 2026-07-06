@@ -145,7 +145,7 @@
             if (p.matrix[r][c]) {
               const ny = p.y + r, nx = p.x + c;
               if (ny >= ROWS || nx < 0 || nx >= COLS) return true;
-              if (ny >= 0 && grid[ny][nx]) return true;
+              if (ny >= 0 && grid[ny] && grid[ny][nx]) return true;
             }
           }
         }
@@ -156,7 +156,7 @@
         p.matrix.forEach((row, r) => row.forEach((v, c) => {
           if (v) {
             const ny = p.y + r, nx = p.x + c;
-            if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) grid[ny][nx] = p.type;
+            if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS && grid[ny]) grid[ny][nx] = p.type;
           }
         }));
       };
@@ -234,7 +234,7 @@
     
     // Executes Hoiko's instant teleportation & immediate hard drop
     step: function(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides) {
-      if (!b.current || b.gameOver || paused || b.flashing) return;
+      if (!b.current || b.gameOver || b.flashing) return;
 
       // 1. Calculate the best move instantly with zero noise and zero delay
       if (!b.cpuTarget) {
