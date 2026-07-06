@@ -763,6 +763,7 @@
     layer.appendChild(cutIn);
     setTimeout(() => cutIn.remove(), 1000);
   }
+  window.triggerCutIn = triggerCutIn;
 
   function init3D(b) {
     if (b.canvas3D) return;
@@ -2423,7 +2424,7 @@
     if (!b.current || b.gameOver || paused || b.flashing) return;
     
     if (settings.cpu.difficulty === 'hoiko' && window.Hoiko) {
-      window.Hoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS);
+      window.Hoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides);
       return;
     }
 
