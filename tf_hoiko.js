@@ -255,71 +255,77 @@
           const scores = prediction.dataSync();
           
           // Get all valid scores and indices
-          const candidates = [];
-          
+          const predictedOptions = [];
           for (let i = 0; i < 40; i++) {
             if (scores[i] > -900.0) {
-              const rot = Math.floor(i / 10);
-              let x = i % 10;
+              predictedOptions.push({ idx: i, score: scores[i] });
+            }
+          }
+          
+          // Sort by NN score and only take the top 5 highest candidates to evaluate
+          predictedOptions.sort((a, b) => b.score - a.score);
+          const topOptions = predictedOptions.slice(0, 5);
+          
+          const candidates = [];
+          for (const opt of topOptions) {
+            const rot = Math.floor(opt.idx / 10);
+            const x = opt.idx % 10;
+            
+            const shapes = ROTATIONS[b.current.type];
+            if (rot < shapes.length) {
+              const matrix = shapes[rot];
               
-              const shapes = ROTATIONS[b.current.type];
-              if (rot < shapes.length) {
-                const matrix = shapes[rot];
+              // Only check the single best slide position aligned with the prediction to save calculations
+              for (let shiftX = -1; shiftX <= 1; shiftX++) {
+                const targetX = x + shiftX;
+                let ok = true;
+                for (let r = 0; r < matrix.length && ok; r++) {
+                  for (let c = 0; c < matrix[r].length && ok; c++) {
+                    if (matrix[r][c]) {
+                      const nx = targetX + c;
+                      if (nx < 0 || nx >= 10) ok = false;
+                    }
+                  }
+                }
+                if (!ok) continue;
                 
-                // Allow sliding slightly off-grid horizontally if the shape matrix allows it
-                // Align x coordinates properly to handle wall boundaries
-                for (let shiftX = -2; shiftX <= 2; shiftX++) {
-                  const targetX = x + shiftX;
-                  let ok = true;
-                  for (let r = 0; r < matrix.length && ok; r++) {
-                    for (let c = 0; c < matrix[r].length && ok; c++) {
-                      if (matrix[r][c]) {
-                        const nx = targetX + c;
-                        if (nx < 0 || nx >= 10) ok = false;
+                // Simulate drop to check validity
+                let y = -3;
+                const checkCollide = (p, grid) => {
+                  for (let r = 0; r < p.matrix.length; r++) {
+                    for (let c = 0; c < p.matrix[r].length; c++) {
+                      if (p.matrix[r][c]) {
+                        const ny = p.y + r, nx = p.x + c;
+                        if (ny >= 20 || nx < 0 || nx >= 10) return true;
+                        if (ny >= 0 && grid[ny] && grid[ny][nx]) return true;
                       }
                     }
                   }
-                  if (!ok) continue;
-                  
-                  // Simulate drop to check validity
-                  let y = -3;
-                  const checkCollide = (p, grid) => {
-                    for (let r = 0; r < p.matrix.length; r++) {
-                      for (let c = 0; c < p.matrix[r].length; c++) {
-                        if (p.matrix[r][c]) {
-                          const ny = p.y + r, nx = p.x + c;
-                          if (ny >= 20 || nx < 0 || nx >= 10) return true;
-                          if (ny >= 0 && grid[ny] && grid[ny][nx]) return true;
-                        }
-                      }
-                    }
-                    return false;
-                  };
-                  
-                  const testPiece = { type: b.current.type, matrix, x: targetX, y };
-                  if (!checkCollide({ ...testPiece }, b.grid)) {
-                    while (!checkCollide({ ...testPiece, y: y + 1 }, b.grid)) {
-                      y++;
-                      if (y >= 20) break;
-                    }
-                    if (y >= 0) {
-                      // Evaluate this exact predicted drop with the refined heuristic
-                      const simGrid = b.grid.map(r => r.slice());
-                      matrix.forEach((row, r) => row.forEach((v, c) => {
-                        if (v && y + r >= 0 && y + r < 20) simGrid[y + r][targetX + c] = b.current.type;
-                      }));
-                      const actualScore = window.Hoiko ? window.Hoiko.evaluateGrid(simGrid) : scores[i];
-                      
-                      // Add to hybrid candidates
-                      candidates.push({
-                        x: targetX,
-                        y,
-                        rotation: rot,
-                        matrix,
-                        nnScore: scores[i],
-                        actualScore: actualScore
-                      });
-                    }
+                  return false;
+                };
+                
+                const testPiece = { type: b.current.type, matrix, x: targetX, y };
+                if (!checkCollide({ ...testPiece }, b.grid)) {
+                  while (!checkCollide({ ...testPiece, y: y + 1 }, b.grid)) {
+                    y++;
+                    if (y >= 20) break;
+                  }
+                  if (y >= 0) {
+                    // Evaluate this exact predicted drop with the refined heuristic
+                    const simGrid = b.grid.map(r => r.slice());
+                    matrix.forEach((row, r) => row.forEach((v, c) => {
+                      if (v && y + r >= 0 && y + r < 20) simGrid[y + r][targetX + c] = b.current.type;
+                    }));
+                    const actualScore = window.Hoiko ? window.Hoiko.evaluateGrid(simGrid) : opt.score;
+                    
+                    candidates.push({
+                      x: targetX,
+                      y,
+                      rotation: rot,
+                      matrix,
+                      nnScore: opt.score,
+                      actualScore: actualScore
+                    });
                   }
                 }
               }
@@ -327,7 +333,6 @@
           }
           
           if (candidates.length > 0) {
-            // Sort by actual heuristic score to ensure the hand is absolute top-tier
             candidates.sort((a, b) => b.actualScore - a.actualScore);
             b.cpuTarget = candidates[0];
           }

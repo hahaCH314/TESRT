@@ -2424,17 +2424,8 @@
     if (!b.current || b.gameOver || paused || b.flashing) return;
     
     if (settings.cpu.difficulty === 'hoiko' && window.TFHoiko) {
-      // hoikoSpeed value: 0 to 100
-      // 100 = 0ms delay (instant teleport)
-      // 0 = 2000ms delay
-      // linear mapping: delay = (100 - hoikoSpeed) * 20 ms
-      const hoikoSpeed = settings.cpu.hoikoSpeed !== undefined ? settings.cpu.hoikoSpeed : 50;
-      const delay = (100 - hoikoSpeed) * 20;
-      
-      b.cpuActionTimer += dt;
-      if (b.cpuActionTimer < delay) return;
-      b.cpuActionTimer = 0;
-      
+      // Ultimate 0ms delay for the match against Natto Cider
+      const delay = 0;
       window.TFHoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides);
       return;
     }
