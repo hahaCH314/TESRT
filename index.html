@@ -492,6 +492,11 @@
                 <button class="diff-btn" data-diff="hoiko" style="color:#ff0055; border-color:#ff0055; font-weight:900; text-shadow: 0 0 6px rgba(255,0,85,0.4);">AIほいこ</button>
               </div>
             </div>
+            <div class="setting-row slider-row" id="hoikoSpeedRow">
+              <div class="setting-label"><span class="setting-name">AI Hoiko Speed</span><span class="setting-hint">ほいこの落下速度 (0 = 低速, 100 = 爆速)</span></div>
+              <input type="range" id="hoikoSpeedRange" min="0" max="100" step="5" class="range">
+              <span class="setting-value" id="hoikoSpeedVal">50</span>
+            </div>
             <div class="setting-row toggle-row">
               <div class="setting-label"><span class="setting-name">Auto Restart</span><span class="setting-hint">CPUが詰んだら自動リスタート</span></div>
               <button class="toggle" data-toggle-cpu="autoRestart" aria-pressed="true">

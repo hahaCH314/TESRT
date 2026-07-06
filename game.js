@@ -265,7 +265,7 @@
     handling: { das:150, arr:40, sdf:20, gravity:1000, lockDelay:500 },
     audio: { bgm:true, se:true, bgmVolume:32, seVolume:55 },
     display: { renderMode:false, ghost:true, grid:true, glow:true, stars:true, particles:true, shake:true, popups:true, flash:true, impact:true, vignette:true },
-    cpu: { difficulty:'normal', autoRestart:true, showTarget:true },
+    cpu: { difficulty:'normal', autoRestart:true, showTarget:true, hoikoSpeed:50 },
     gamepadBindings: { moveLeft:14, moveRight:15, softDrop:13, hardDrop:5, rotateCW:0, rotateCCW:1, rotate180:3, hold:2, pause:9, reset:8 },
   };
   const ACTION_LABELS = [
@@ -2424,6 +2424,17 @@
     if (!b.current || b.gameOver || paused || b.flashing) return;
     
     if (settings.cpu.difficulty === 'hoiko' && window.Hoiko) {
+      // hoikoSpeed value: 0 to 100
+      // 100 = 0ms delay (instant teleport)
+      // 0 = 2000ms delay
+      // linear mapping: delay = (100 - hoikoSpeed) * 20 ms
+      const hoikoSpeed = settings.cpu.hoikoSpeed !== undefined ? settings.cpu.hoikoSpeed : 50;
+      const delay = (100 - hoikoSpeed) * 20;
+      
+      b.cpuActionTimer += dt;
+      if (b.cpuActionTimer < delay) return;
+      b.cpuActionTimer = 0;
+      
       window.Hoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides);
       return;
     }
@@ -2481,6 +2492,7 @@
   const dasVal = $('dasVal'), arrVal = $('arrVal'), sdfVal = $('sdfVal'), gravVal = $('gravVal'), lockVal = $('lockVal');
   const bgmRange = $('bgmRange'), seRange = $('seRange'), bgmVal = $('bgmVal'), seVal = $('seVal');
   const diffButtons = $('diffButtons');
+  const hoikoSpeedRange = $('hoikoSpeedRange'), hoikoSpeedVal = $('hoikoSpeedVal'), hoikoSpeedRow = $('hoikoSpeedRow');
 
   // ---------- BOARDS ----------
   const playerBoard = createBoard({
@@ -3672,12 +3684,21 @@
     lockVal.textContent = settings.handling.lockDelay === 0 ? 'OFF' : `${settings.handling.lockDelay} ms`;
     bgmRange.value = settings.audio.bgmVolume; seRange.value = settings.audio.seVolume;
     bgmVal.textContent = `${settings.audio.bgmVolume}%`; seVal.textContent = `${settings.audio.seVolume}%`;
+    
+    // Sync hoikoSpeed
+    const hSpeed = settings.cpu.hoikoSpeed !== undefined ? settings.cpu.hoikoSpeed : 50;
+    if (hoikoSpeedRange) hoikoSpeedRange.value = hSpeed;
+    if (hoikoSpeedVal) hoikoSpeedVal.textContent = hSpeed;
+    
     // Sync difficulty preset buttons
     if (diffButtons) {
       const cur = settings.cpu.difficulty || 'normal';
       diffButtons.querySelectorAll('.diff-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.diff === cur);
       });
+      if (hoikoSpeedRow) {
+        hoikoSpeedRow.style.display = cur === 'hoiko' ? 'flex' : 'none';
+      }
     }
   }
   function syncTogglesFromSettings() {
@@ -3705,11 +3726,23 @@
   lockRange.addEventListener('input', () => { settings.handling.lockDelay = +lockRange.value; lockVal.textContent = settings.handling.lockDelay === 0 ? 'OFF' : `${settings.handling.lockDelay} ms`; saveSettings(); });
   bgmRange.addEventListener('input', () => { settings.audio.bgmVolume = +bgmRange.value; bgmVal.textContent = `${settings.audio.bgmVolume}%`; window.audio.setBgmVolume(settings.audio.bgmVolume/100); saveSettings(); });
   seRange.addEventListener('input', () => { settings.audio.seVolume = +seRange.value; seVal.textContent = `${settings.audio.seVolume}%`; window.audio.setSeVolume(settings.audio.seVolume/100); saveSettings(); });
+  
+  if (hoikoSpeedRange) {
+    hoikoSpeedRange.addEventListener('input', () => {
+      settings.cpu.hoikoSpeed = +hoikoSpeedRange.value;
+      if (hoikoSpeedVal) hoikoSpeedVal.textContent = settings.cpu.hoikoSpeed;
+      saveSettings();
+    });
+  }
+  
   if (diffButtons) {
     diffButtons.querySelectorAll('.diff-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         settings.cpu.difficulty = btn.dataset.diff;
         diffButtons.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+        if (hoikoSpeedRow) {
+          hoikoSpeedRow.style.display = btn.dataset.diff === 'hoiko' ? 'flex' : 'none';
+        }
         saveSettings();
         // reset CPU target so next tick uses the new noise/miss settings immediately
         if (cpuBoard) { cpuBoard.cpuTarget = null; cpuBoard.cpuActionTimer = 0; }

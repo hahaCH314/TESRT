@@ -10,12 +10,13 @@
       const ROWS = 20;
       const heights = new Array(COLS).fill(0);
       let holes = 0;
+      let totalBlocks = 0;
       
-      // S4Wの再現: 右端4列(col 6-9)は意図的に低く保ち、左側6列(col 0-5)で高く積んでREN用のタワーを作る
       for (let c = 0; c < COLS; c++) {
         let firstBlock = -1;
         for (let r = 0; r < ROWS; r++) {
           if (g[r][c]) {
+            totalBlocks++;
             if (firstBlock === -1) {
               firstBlock = r;
               heights[c] = ROWS - r;
@@ -26,48 +27,122 @@
         }
       }
 
-      const leftH = heights.slice(0, 6);
-      const rightH = heights.slice(6, 10);
-      const maxLeftH = Math.max(...leftH);
-      const maxRightH = Math.max(...rightH);
+      const maxH = Math.max(...heights);
+      const minH = Math.min(...heights);
+      const avgH = heights.reduce((a, b) => a + b, 0) / COLS;
       
+      // Calculate overall roughness (bumpiness)
+      let bumpiness = 0;
+      for (let i = 0; i < COLS - 1; i++) {
+        bumpiness += Math.abs(heights[i] - heights[i+1]);
+      }
+
       let score = 0;
-      
-      // 1. S4W インセンティブ: 左側のタワーと右側の空きスペースのギャップ
-      // 右側は平らで低く（高さ2以下が望ましい）、左側は高く積んでRENの準備
-      const s4wGap = maxLeftH - maxRightH;
-      if (s4wGap >= 3 && maxRightH <= 4) {
-        score += 15.0; // S4Wの形ができている時の大きな加点
-      }
-      
-      // 2. T-Spin用の溝(幅1、深さ2以上、かつ屋根がある等)の評価
-      for (let c = 1; c < 9; c++) {
-        if (heights[c-1] - heights[c] >= 2 && heights[c+1] - heights[c] >= 2) {
-          score += 8.0; // T-Spin用の溝への加点
+
+      // 1. STATE DETERMINATION (状況分析)
+      const isPinch = (maxH >= 11); // ピンチ判定 (11段以上積まれている)
+      const isFlat = (bumpiness <= 4 && maxH <= 6); // 平坦判定 (凹凸が少なく、高さが低い)
+      const isJagged = (bumpiness >= 8); // デコボコ判定
+
+      // 2. STATE-BASED STRATEGY (状況ごとの戦略重み付け)
+      if (isPinch) {
+        // 【ピンチモード：REN・相殺・緊急防御】
+        // REN(コンボ)を繋ぎやすくするために右側を空けつつ、積極的に消しにかかる
+        const leftH = heights.slice(0, 6);
+        const rightH = heights.slice(6, 10);
+        const maxLeftH = Math.max(...leftH);
+        const maxRightH = Math.max(...rightH);
+        const s4wGap = maxLeftH - maxRightH;
+        
+        // S4W(サイド4ワイド)のREN構築を支援
+        if (s4wGap >= 3 && maxRightH <= 4) {
+          score += 25.0; // ピンチ時はRENでの大逆転を狙い、S4Wの加点を高める
         }
-      }
-
-      // 3. 穴(Holes)に対する極めて厳しいペナルティ (ほいこは絶対に無駄な穴を作らない)
-      score -= holes * 15.0;
-
-      // 4. 高さ平準化ペナルティ (凹凸を避ける、ただしS4W用の左側と右側の境界は除く)
-      let bump = 0;
-      for (let i = 0; i < 5; i++) bump += Math.abs(heights[i] - heights[i+1]);
-      for (let i = 6; i < 9; i++) bump += Math.abs(heights[i] - heights[i+1]);
-      score -= bump * 0.5;
-
-      // 5. 高さペナルティ (高すぎるとマイナス)
-      const totalH = heights.reduce((a, b) => a + b, 0);
-      score -= totalH * 0.20;
-      
-      // 6. ライン消去評価 (ほいこは無駄なシングルを消さない。RENかT-SpinかTetrisでのみ消す)
-      let complete = 0;
-      for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
-      
-      if (complete > 0) {
-        if (complete === 4) score += 45.0; // テトリス(4列消し)大歓迎
-        else if (complete >= 2) score += 15.0; // T-Spin Double等をシミュレート
-        else score -= 12.0; // 無駄な1ライン消去(シングル)は減点して温存させる (相殺外し・REN維持のため)
+        
+        // 穴や高さへの超絶ペナルティ
+        score -= holes * 60.0;
+        score -= maxH * 8.0;
+        
+        // とにかくライン消去（シングルでも何でも歓迎して盤面を下げる）
+        let complete = 0;
+        for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
+        if (complete > 0) {
+          score += complete * 25.0; // 消せば消すほど良い
+        }
+      } 
+      else if (isFlat) {
+        // 【平坦モード：パフェ（Perfect Clear / PC）狙い】
+        // 盤面が完全に真っ平ら（ブロック数0）になるのを歓迎する
+        if (totalBlocks === 0) {
+          score += 150.0; // パフェ達成時の超絶加点
+        }
+        
+        // 穴は絶対NG（パフェの妨げ）
+        score -= holes * 80.0;
+        
+        // できるだけ平らに保つ
+        score -= bumpiness * 5.0;
+        score -= maxH * 1.5;
+        
+        // 消去時の加点
+        let complete = 0;
+        for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
+        if (complete > 0) {
+          if (complete === 4) score += 40.0;
+          else score += 10.0;
+        }
+      } 
+      else if (isJagged) {
+        // 【デコボコモード：T-spin 狙い】
+        // 意図的に溝（T-spinの形）を作ってT-spinによる高火力を狙う
+        let tspinGrooves = 0;
+        for (let c = 1; c < 9; c++) {
+          // 左右が高く、中央が2マス以上凹んでいるT-spin用の溝を検出
+          if (heights[c-1] - heights[c] >= 2 && heights[c+1] - heights[c] >= 2) {
+            tspinGrooves++;
+          }
+        }
+        score += tspinGrooves * 30.0; // T-spin用の溝構築への超強力なインセンティブ
+        
+        // 穴は作らない
+        score -= holes * 45.0;
+        // 高さは緩やかに制御
+        score -= maxH * 2.0;
+        
+        // T-spin Double (2ライン消去) や T-spin Triple などのマルチ消去を歓迎
+        let complete = 0;
+        for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
+        if (complete > 0) {
+          if (complete === 2) score += 35.0; // T-spin Double想定の加点
+          else if (complete === 3) score += 40.0;
+          else if (complete === 4) score += 50.0;
+          else score -= 15.0; // 単なる1ライン消去はT-spin用の溝を壊すのでペナルティ
+        }
+      } 
+      else {
+        // 【通常モード：バランスプレイ】
+        // 安定したS4Wの構築と、安全な高さ維持
+        const leftH = heights.slice(0, 6);
+        const rightH = heights.slice(6, 10);
+        const maxLeftH = Math.max(...leftH);
+        const maxRightH = Math.max(...rightH);
+        const s4wGap = maxLeftH - maxRightH;
+        
+        if (maxLeftH < 12 && s4wGap >= 3 && maxRightH <= 4) {
+          score += 15.0; // S4Wのベース加点
+        }
+        
+        score -= holes * 40.0;
+        score -= bumpiness * 1.5;
+        score -= totalH * 2.0;
+        
+        let complete = 0;
+        for (let r = 0; r < ROWS; r++) if (g[r].every(cell => cell)) complete++;
+        if (complete > 0) {
+          if (complete === 4) score += 50.0;
+          else if (complete >= 2) score += 20.0;
+          else score -= 12.0; // 通常時の無駄なシングルは温存
+        }
       }
 
       return score;
