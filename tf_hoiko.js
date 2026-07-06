@@ -212,6 +212,13 @@
     // Make move using model prediction
     step: function(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides) {
       if (!b.current || b.gameOver || b.flashing) return;
+
+      // Add a safety check to skip the first 5 frames after game restarts to allow layout and models to fully sync.
+      if (!b.startSafetyFrames) b.startSafetyFrames = 0;
+      if (b.startSafetyFrames < 5) {
+        b.startSafetyFrames++;
+        return;
+      }
       
       // Lazy load model on first step
       if (!this.model) {

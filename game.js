@@ -3819,6 +3819,7 @@
     hideOverlay(b);
     refillQueue(b);
     spawn(b);
+    b.startSafetyFrames = 0;
     updateHud(b);
     drawHold(b);
   }
