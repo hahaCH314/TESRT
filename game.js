@@ -2380,6 +2380,7 @@
     normal: { speed: 180, noise: 1.2, missChance: 0.08 },
     hard:   { speed: 60,  noise: 0.2, missChance: 0    },
     expert: { speed: 15,  noise: 0,   missChance: 0    },
+    hoiko:  { speed: 0,   noise: 0,   missChance: 0    },
   };
   function cpuPreset() { return CPU_PRESETS[settings.cpu.difficulty] || CPU_PRESETS.normal; }
 
@@ -2420,6 +2421,12 @@
   }
   function cpuStep(b, dt) {
     if (!b.current || b.gameOver || paused || b.flashing) return;
+    
+    if (settings.cpu.difficulty === 'hoiko' && window.Hoiko) {
+      window.Hoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS);
+      return;
+    }
+
     const preset = cpuPreset();
     b.cpuActionTimer += dt;
     if (b.cpuActionTimer < preset.speed) return;
