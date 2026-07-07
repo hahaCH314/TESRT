@@ -3253,6 +3253,12 @@
   let friends = JSON.parse(localStorage.getItem('puyotetris_friends') || '[]');
   let friendsOnline = {};
 
+  // Peer/friend ids come from remote peers over a public MQTT broker. Restrict to a
+  // safe charset so they can never break out of DOM attributes or inject markup.
+  function isSafePeerId(id) {
+    return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id);
+  }
+
   function initMQTT(peerId) {
     if (mqttClient) { mqttClient.end(); mqttClient = null; }
 
@@ -3276,7 +3282,12 @@
         const data = JSON.parse(message.toString());
         if (topic === 'puyotetris/rooms/public') {
           if (data.action === 'add') {
-            if (!publicRooms.some(r => r.id === data.id)) publicRooms.push(data);
+            // Only trust well-formed ids; keep just id/name (drop any extra fields).
+            // Rendering still uses textContent, so this is defence-in-depth, not the sole guard.
+            if (isSafePeerId(data.id) && !publicRooms.some(r => r.id === data.id)) {
+              const name = (typeof data.name === 'string' ? data.name : 'NO NAME').slice(0, 40);
+              publicRooms.push({ id: data.id, name });
+            }
           } else if (data.action === 'remove') {
             publicRooms = publicRooms.filter(r => r.id !== data.id);
           }
@@ -3328,11 +3339,20 @@
       div.style.background = 'rgba(255,255,255,0.06)';
       div.style.borderRadius = '8px';
       div.style.border = '1px solid rgba(255,255,255,0.08)';
-      
-      div.innerHTML = `
-        <span style="font-weight:bold; color:#fff;">${room.name}</span>
-        <button class="type-start-btn" style="margin:0; padding:6px 12px; font-size:0.8rem; border-radius:6px;" onclick="connectToRoom('${room.id}')">JOIN</button>
-      `;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.style.fontWeight = 'bold';
+      nameSpan.style.color = '#fff';
+      nameSpan.textContent = room.name; // textContent: remote name can never inject markup
+
+      const joinBtn = document.createElement('button');
+      joinBtn.className = 'type-start-btn';
+      joinBtn.style.cssText = 'margin:0; padding:6px 12px; font-size:0.8rem; border-radius:6px;';
+      joinBtn.textContent = 'JOIN';
+      joinBtn.addEventListener('click', () => window.connectToRoom(room.id));
+
+      div.appendChild(nameSpan);
+      div.appendChild(joinBtn);
       list.appendChild(div);
     });
   }
@@ -3358,14 +3378,30 @@
       div.style.padding = '8px 12px';
       div.style.background = 'rgba(255,255,255,0.06)';
       div.style.borderRadius = '8px';
-      
-      div.innerHTML = `
-        <span style="font-weight:bold; color:${isOnline ? '#22e6ff' : '#888'};">${fId.slice(0,8)}... (${isOnline ? 'ONLINE' : 'OFFLINE'})</span>
-        <div>
-          ${isOnline ? `<button class="type-start-btn" style="margin:0; padding:4px 8px; font-size:0.75rem; border-radius:6px; background:#0ea5e9;" onclick="inviteFriend('${fId}')">対戦申請</button>` : ''}
-          <button class="type-start-btn" style="margin:0; padding:4px 8px; font-size:0.75rem; border-radius:6px; background:#ef4444;" onclick="removeFriend('${fId}')">削除</button>
-        </div>
-      `;
+
+      const label = document.createElement('span');
+      label.style.fontWeight = 'bold';
+      label.style.color = isOnline ? '#22e6ff' : '#888';
+      label.textContent = `${fId.slice(0, 8)}... (${isOnline ? 'ONLINE' : 'OFFLINE'})`;
+
+      const btnWrap = document.createElement('div');
+      if (isOnline) {
+        const inviteBtn = document.createElement('button');
+        inviteBtn.className = 'type-start-btn';
+        inviteBtn.style.cssText = 'margin:0; padding:4px 8px; font-size:0.75rem; border-radius:6px; background:#0ea5e9;';
+        inviteBtn.textContent = '対戦申請';
+        inviteBtn.addEventListener('click', () => window.inviteFriend(fId));
+        btnWrap.appendChild(inviteBtn);
+      }
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'type-start-btn';
+      removeBtn.style.cssText = 'margin:0; padding:4px 8px; font-size:0.75rem; border-radius:6px; background:#ef4444;';
+      removeBtn.textContent = '削除';
+      removeBtn.addEventListener('click', () => window.removeFriend(fId));
+      btnWrap.appendChild(removeBtn);
+
+      div.appendChild(label);
+      div.appendChild(btnWrap);
       list.appendChild(div);
     });
   }
@@ -3383,7 +3419,7 @@
 
   $('addFriendBtn').addEventListener('click', () => {
     const id = $('friendIdInput').value.trim();
-    if (id && id !== myPeerId && !friends.includes(id)) {
+    if (isSafePeerId(id) && id !== myPeerId && !friends.includes(id)) {
       friends.push(id);
       localStorage.setItem('puyotetris_friends', JSON.stringify(friends));
       $('friendIdInput').value = '';
