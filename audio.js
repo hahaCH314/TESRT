@@ -361,8 +361,8 @@
 
       // 2. Audio Effects Chain
       this.distortion = new Tone.Distortion(0.0);
-      this.filter = new Tone.Filter(1800, "lowpass");
-      this.pingPong = new Tone.PingPongDelay("8n.", 0.28);
+      this.filter = new Tone.Filter(2000, "lowpass");
+      this.pingPong = new Tone.PingPongDelay("8n", 0.20); // changed delay time from 8n. to 8n, feedback from 0.28 to 0.20
       
       // Volume controls
       this.bgmVolumeNode = new Tone.Volume(Tone.gainToDb(this.bgmVolume));
@@ -392,7 +392,7 @@
       Tone.Transport.start();
 
       const t = this.ctx ? this.ctx.currentTime : 0;
-      this.bgmNextTime = t + 0.10;
+      this.bgmNextTime = t + 0.15;
       this._scheduleBGM();
     }
 
@@ -422,15 +422,15 @@
       // Dynamic effect modulation
       if (this.filter) {
         // As pressure rises, filter sweeps open (brighter, harsher sound)
-        this.filter.frequency.setValueAtTime(1400 + 4500 * I, this.ctx.currentTime);
+        this.filter.frequency.setValueAtTime(1600 + 4300 * I, this.ctx.currentTime);
       }
       if (this.distortion) {
         // Distort BGM sound waves on intense moments
-        this.distortion.distortion = I * 0.42;
+        this.distortion.distortion = I * 0.35;
       }
       if (this.pingPong) {
-        // Increase delay feedback as stack rises
-        this.pingPong.feedback.setValueAtTime(0.15 + 0.30 * I, this.ctx.currentTime);
+        // Increase delay feedback as stack rises, capped to avoid dragging/reverse echoes
+        this.pingPong.feedback.setValueAtTime(0.12 + 0.22 * I, this.ctx.currentTime);
       }
 
       // Korobeiniki arrangement
