@@ -609,12 +609,13 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <!-- 外部CDNは版を固定し、SRI(integrity)＋crossoriginで改竄・すり替えを防止 -->
+  <script src="https://unpkg.com/mqtt@5.15.2/dist/mqtt.min.js" integrity="sha384-haZiwxTLortiFcYMBEEE1+8ayC+o18YtuwHZv+4WQHoPaLzRjwOV6h7Vva5iLSCZ" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js" integrity="sha384-QfGw0R4npwfR5dPhK7V7G0NNR+eDrkBOqtXT22mGx56CokD6Gx18KyAQMtDQbQne" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" integrity="sha384-d+vyQ0dYcymoP8ndq2hW7FGC50nqGdXUEgoOUGxbbkAJwZqL7h+jKN0GGgn9hFDS" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" integrity="sha384-xc4sZTUOM2obsQR75Be0zGbt7Gb6mOVFJN4yBm30Xn0YQLDWIY+yrtFmLmIank6w" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" integrity="sha384-c6Uo4N9c3SOEigMVzP6IshUG1wQ5uMp3xeoQFiHWAQ86joWdgyajkvopySyKy/Z6" crossorigin="anonymous"></script>
   <script src="audio.js?v=6"></script>
   <script src="hoiko.js"></script>
   <script src="tf_hoiko.js"></script>
