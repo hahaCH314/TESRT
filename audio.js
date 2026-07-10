@@ -32,7 +32,7 @@
       
       // Preload user's custom BGM
       this.bgmAudio = new Audio();
-      this.bgmAudio.src = '../../Downloads/TETRIS%20PHONK%20-%20smaher.mp3';
+      this.bgmAudio.src = 'TETRIS PHONK - smaher.mp3';
       this.bgmAudio.loop = true;
       this.bgmLoaded = false;
       this.bgmAudio.addEventListener('canplaythrough', () => {
