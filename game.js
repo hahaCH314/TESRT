@@ -265,7 +265,7 @@
     handling: { das:150, arr:40, sdf:20, gravity:1000, lockDelay:500 },
     audio: { bgm:true, se:true, bgmVolume:32, seVolume:55 },
     display: { renderMode:false, ghost:true, grid:true, glow:true, stars:true, particles:true, shake:true, popups:true, flash:true, impact:true, vignette:true },
-    cpu: { difficulty:'normal', autoRestart:true, showTarget:true, hoikoSpeed:50 },
+    cpu: { difficulty:'normal', autoRestart:true, showTarget:true },
     gamepadBindings: { moveLeft:14, moveRight:15, softDrop:13, hardDrop:5, rotateCW:0, rotateCCW:1, rotate180:3, hold:2, pause:9, reset:8 },
   };
   const ACTION_LABELS = [
@@ -1567,46 +1567,45 @@
       if (!v) return;
       const px = (piece.x + cc + 0.5) * CELL;
       const py = (piece.y + rr + 0.5) * CELL;
-      const count = big ? 8 : 3;
+      const count = big ? 25 : 8; // ド派手に強化
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 0.6 + Math.random() * (big ? 3 : 1.4);
+        const speed = 1.5 + Math.random() * (big ? 8 : 3); // 速度倍増
         b.particles.push({
           x: px, y: py,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - (big ? 1 : 0.2),
-          life: 0.6 + Math.random() * 0.4, maxLife: 1,
-          size: 2 + Math.random() * 2, gravity: 0.12, rgb: [r, g, bl],
+          vy: Math.sin(angle) * speed - (big ? 3 : 1),
+          life: 0.8 + Math.random() * 0.6, maxLife: 1.4,
+          size: 3 + Math.random() * 4, gravity: 0.18, rgb: [r, g, bl],
         });
       }
     }));
   }
   function emitClearParticles(b, cx, cy, type) {
     if (!settings.display.particles) return;
-    // Puyo colors (R/B/G/Y/P/O) live in PUYO_COLORS; tetris colors in COLORS.
     const col = PUYO_COLORS[type] || COLORS[type] || { base: '#ffffff', light: '#ffffff' };
     const [r, g, bl] = hexToRgb(col.base);
     const [lr, lg, lb] = hexToRgb(col.light || col.base);
     const px = (cx + 0.5) * CELL, py = (cy + 0.5) * CELL;
-    // Radial shard burst — "はじけて消える".
-    const N = 20;
+    // Radial shard burst — "はじけて消える" を超絶強化.
+    const N = 80; // 破片の数を劇的に増加
     for (let i = 0; i < N; i++) {
       const angle = (i / N) * Math.PI * 2 + Math.random() * 0.5;
-      const speed = 1.6 + Math.random() * 4;
+      const speed = 3.0 + Math.random() * 8.0;
       const white = i % 4 === 0;
       b.particles.push({
         x: px, y: py,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1.5 - Math.random() * 1.5,
-        life: 0.5 + Math.random() * 0.5, maxLife: 1.0,
-        size: 2 + Math.random() * 3, gravity: 0.16,
+        vy: Math.sin(angle) * speed - 2.5 - Math.random() * 3.0,
+        life: 0.8 + Math.random() * 0.7, maxLife: 1.5,
+        size: 3 + Math.random() * 5, gravity: 0.2,
         rgb: white ? [lr, lg, lb] : [r, g, bl],
       });
     }
     // Expanding pop ring.
     b.particles.push({
-      ring: true, x: px, y: py, r0: CELL * 0.28, grow: CELL * 1.3,
-      life: 0.32, maxLife: 0.32, gravity: 0, vx: 0, vy: 0, size: 0,
+      ring: true, x: px, y: py, r0: CELL * 0.28, grow: CELL * 2.5,
+      life: 0.4, maxLife: 0.4, gravity: 0, vx: 0, vy: 0, size: 0,
       rgb: [lr, lg, lb],
     });
   }
@@ -1631,13 +1630,14 @@
   // ---------- SHAKE / FX / POPUPS (global) ----------
   let shakeAmount = 0;
   let hitStopUntil = 0;
-  function shake(amt) { shakeAmount = Math.max(shakeAmount, amt); }
+  function shake(amt) { shakeAmount = Math.max(shakeAmount, amt * 1.8); } // 揺れ幅を全体的に1.8倍に
   function applyShake() {
     if (shakeAmount <= 0.3) { if (shakeAmount !== 0) { gameFrame.style.transform = ''; if (cpuFrame) cpuFrame.style.transform = ''; shakeAmount = 0; } return; }
     const x = (Math.random() - 0.5) * shakeAmount;
     const y = (Math.random() - 0.5) * shakeAmount;
     gameFrame.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-    shakeAmount *= 0.86;
+    if (cpuFrame) cpuFrame.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    shakeAmount *= 0.90; // 減衰を少しゆっくりにして揺れを長引かせる
   }
   function hitStop(ms) {
     if (!settings.display.impact) return;
@@ -2381,7 +2381,6 @@
     normal: { speed: 180, noise: 1.2, missChance: 0.08 },
     hard:   { speed: 60,  noise: 0.2, missChance: 0    },
     expert: { speed: 15,  noise: 0,   missChance: 0    },
-    hoiko:  { speed: 0,   noise: 0,   missChance: 0    },
   };
   function cpuPreset() { return CPU_PRESETS[settings.cpu.difficulty] || CPU_PRESETS.normal; }
 
@@ -2422,16 +2421,6 @@
   }
   function cpuStep(b, dt) {
     if (!b.current || b.gameOver || paused || b.flashing) return;
-
-    if (settings.cpu.difficulty === 'hoiko' && window.TFHoiko) {
-      if (!b.startSafetyFrames) b.startSafetyFrames = 0;
-      if (b.startSafetyFrames < 15) {
-        b.startSafetyFrames++;
-        return;
-      }
-      window.TFHoiko.step(b, findBestMove, findBestMovePuyo, hardDrop, ROTATIONS, puyoCollides);
-      return;
-    }
 
     const preset = cpuPreset();
     b.cpuActionTimer += dt;
@@ -2486,7 +2475,6 @@
   const dasVal = $('dasVal'), arrVal = $('arrVal'), sdfVal = $('sdfVal'), gravVal = $('gravVal'), lockVal = $('lockVal');
   const bgmRange = $('bgmRange'), seRange = $('seRange'), bgmVal = $('bgmVal'), seVal = $('seVal');
   const diffButtons = $('diffButtons');
-  const hoikoSpeedRange = $('hoikoSpeedRange'), hoikoSpeedVal = $('hoikoSpeedVal'), hoikoSpeedRow = $('hoikoSpeedRow');
 
   // ---------- BOARDS ----------
   const playerBoard = createBoard({
@@ -3718,20 +3706,12 @@
     bgmRange.value = settings.audio.bgmVolume; seRange.value = settings.audio.seVolume;
     bgmVal.textContent = `${settings.audio.bgmVolume}%`; seVal.textContent = `${settings.audio.seVolume}%`;
     
-    // Sync hoikoSpeed
-    const hSpeed = settings.cpu.hoikoSpeed !== undefined ? settings.cpu.hoikoSpeed : 50;
-    if (hoikoSpeedRange) hoikoSpeedRange.value = hSpeed;
-    if (hoikoSpeedVal) hoikoSpeedVal.textContent = hSpeed;
-    
     // Sync difficulty preset buttons
     if (diffButtons) {
       const cur = settings.cpu.difficulty || 'normal';
       diffButtons.querySelectorAll('.diff-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.diff === cur);
       });
-      if (hoikoSpeedRow) {
-        hoikoSpeedRow.style.display = cur === 'hoiko' ? 'flex' : 'none';
-      }
     }
   }
   function syncTogglesFromSettings() {
@@ -3760,22 +3740,11 @@
   bgmRange.addEventListener('input', () => { settings.audio.bgmVolume = +bgmRange.value; bgmVal.textContent = `${settings.audio.bgmVolume}%`; window.audio.setBgmVolume(settings.audio.bgmVolume/100); saveSettings(); });
   seRange.addEventListener('input', () => { settings.audio.seVolume = +seRange.value; seVal.textContent = `${settings.audio.seVolume}%`; window.audio.setSeVolume(settings.audio.seVolume/100); saveSettings(); });
   
-  if (hoikoSpeedRange) {
-    hoikoSpeedRange.addEventListener('input', () => {
-      settings.cpu.hoikoSpeed = +hoikoSpeedRange.value;
-      if (hoikoSpeedVal) hoikoSpeedVal.textContent = settings.cpu.hoikoSpeed;
-      saveSettings();
-    });
-  }
-  
   if (diffButtons) {
     diffButtons.querySelectorAll('.diff-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         settings.cpu.difficulty = btn.dataset.diff;
         diffButtons.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
-        if (hoikoSpeedRow) {
-          hoikoSpeedRow.style.display = btn.dataset.diff === 'hoiko' ? 'flex' : 'none';
-        }
         saveSettings();
         // reset CPU target so next tick uses the new noise/miss settings immediately
         if (cpuBoard) { cpuBoard.cpuTarget = null; cpuBoard.cpuActionTimer = 0; }
