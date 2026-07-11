@@ -315,6 +315,14 @@
     return PAD_BUTTON_LABELS[v] ?? ('Btn ' + v); 
   }
 
+  function getSkinStyle() {
+    const cyberSkins = ['neon', 'ruby', 'sapphire', 'emerald', 'topaz', 'amethyst', 'metal'];
+    const cuteSkins = ['pastel', 'mint', 'cherry', 'banana', 'soda', 'toy', 'glass'];
+    if (cyberSkins.includes(activeSkin)) return 'cyber';
+    if (cuteSkins.includes(activeSkin)) return 'cute';
+    return 'gits'; // default/classic/monochrome/gold/wood/chalk etc.
+  }
+
   function deepMerge(def, val) {
     if (val === null || typeof val !== 'object' || Array.isArray(val)) return def;
     const out = {};
@@ -334,6 +342,14 @@
 
   // ---------- BLOCK RENDERING (cached sprites) ----------
   const blockCache = {};
+  function getSkinStyle() {
+    const cyberSkins = ['neon', 'ruby', 'sapphire', 'emerald', 'topaz', 'amethyst', 'metal'];
+    const cuteSkins = ['pastel', 'mint', 'cherry', 'banana', 'soda', 'toy', 'glass'];
+    if (cyberSkins.includes(activeSkin)) return 'cyber';
+    if (cuteSkins.includes(activeSkin)) return 'cute';
+    return 'shadow'; // default/classic/monochrome/gold/wood/chalk etc.
+  }
+
   function drawBlockAbs(c, px, py, size, type) {
     let cached = blockCache[type];
     if (!cached) {
@@ -344,71 +360,235 @@
     }
     if (size === CELL) c.drawImage(cached, px, py);
     else c.drawImage(cached, px, py, size, size);
+
+    // Dynamic per-frame overlays
+    const style = getSkinStyle();
+    const t = Date.now() / 1000;
+    const col = COLORS[type] || {light:'#fff', base:'#888', dark:'#444'};
+    
+    c.save();
+    c.translate(px + size/2, py + size/2);
+    if (style === 'pro') {
+      // No dynamic overlays for Pro style to maximize visibility and reduce eye strain
+    } else if (style === 'cute') {
+      // Floating sparkles
+      for(let i=0; i<2; i++) {
+        const offsetT = t * 3 + i * 3.14;
+        const sx = Math.sin(offsetT) * size * 0.3;
+        const sy = Math.cos(offsetT * 1.5) * size * 0.3;
+        const scale = (Math.sin(t * 5 + i) + 1) / 2;
+        
+        if (scale > 0.2) {
+          c.fillStyle = '#ffffff';
+          c.globalAlpha = scale;
+          c.beginPath();
+          c.arc(sx, sy, size * 0.05, 0, Math.PI*2);
+          c.fill();
+        }
+      }
+    }
+    c.restore();
   }
+
   function renderBlockToCtx(c, px, py, size, type) {
+    const style = getSkinStyle();
+    if (style === 'cute') renderBlockToCtxCute(c, px, py, size, type);
+    else if (style === 'cyber') renderBlockToCtxCyber(c, px, py, size, type);
+    else renderBlockToCtxPro(c, px, py, size, type);
+  }
+
+  function renderBlockToCtxPro(c, px, py, size, type) {
     const col = COLORS[type]; if (!col) return;
-    const s = size, inset = 1, bevel = Math.max(2, Math.floor(s * 0.18));
-    const grad = c.createLinearGradient(px, py, px, py + s);
-    grad.addColorStop(0, col.light); grad.addColorStop(0.45, col.base); grad.addColorStop(1, col.dark);
-    c.fillStyle = grad; c.fillRect(px + inset, py + inset, s - inset * 2, s - inset * 2);
+    const s = size;
+    const bevel = Math.max(1, s * 0.15); // Adjust bevel based on cell size
 
-    c.fillStyle = col.light;
-    c.beginPath();
-    c.moveTo(px + inset, py + inset); c.lineTo(px + s - inset, py + inset);
-    c.lineTo(px + s - inset - bevel, py + inset + bevel); c.lineTo(px + inset + bevel, py + inset + bevel);
-    c.closePath(); c.fill();
+    // 1. Base solid color
+    c.fillStyle = col.base;
+    c.fillRect(px, py, s, s);
 
-    c.fillStyle = withAlpha(col.light, 0.75);
-    c.beginPath();
-    c.moveTo(px + inset, py + inset); c.lineTo(px + inset + bevel, py + inset + bevel);
-    c.lineTo(px + inset + bevel, py + s - inset - bevel); c.lineTo(px + inset, py + s - inset);
-    c.closePath(); c.fill();
+    // 2. Simple clean bevels
+    // Top highlight
+    c.fillStyle = withAlpha('#ffffff', 0.4);
+    c.beginPath(); c.moveTo(px, py); c.lineTo(px + s, py); c.lineTo(px + s - bevel, py + bevel); c.lineTo(px + bevel, py + bevel); c.fill();
+    // Left highlight
+    c.fillStyle = withAlpha('#ffffff', 0.2);
+    c.beginPath(); c.moveTo(px, py); c.lineTo(px, py + s); c.lineTo(px + bevel, py + s - bevel); c.lineTo(px + bevel, py + bevel); c.fill();
+    // Bottom shadow
+    c.fillStyle = 'rgba(0,0,0,0.5)';
+    c.beginPath(); c.moveTo(px, py + s); c.lineTo(px + s, py + s); c.lineTo(px + s - bevel, py + s - bevel); c.lineTo(px + bevel, py + s - bevel); c.fill();
+    // Right shadow
+    c.fillStyle = 'rgba(0,0,0,0.3)';
+    c.beginPath(); c.moveTo(px + s, py); c.lineTo(px + s, py + s); c.lineTo(px + s - bevel, py + s - bevel); c.lineTo(px + s - bevel, py + bevel); c.fill();
 
-    c.fillStyle = col.dark;
-    c.beginPath();
-    c.moveTo(px + s - inset, py + inset); c.lineTo(px + s - inset, py + s - inset);
-    c.lineTo(px + s - inset - bevel, py + s - inset - bevel); c.lineTo(px + s - inset - bevel, py + inset + bevel);
-    c.closePath(); c.fill();
-
-    c.fillStyle = shade(col.dark, -0.2);
-    c.beginPath();
-    c.moveTo(px + inset, py + s - inset); c.lineTo(px + s - inset, py + s - inset);
-    c.lineTo(px + s - inset - bevel, py + s - inset - bevel); c.lineTo(px + inset + bevel, py + s - inset - bevel);
-    c.closePath(); c.fill();
-
-    const gloss = c.createLinearGradient(px + inset + bevel, py + inset + bevel, px + s - inset - bevel, py + s - inset - bevel);
-    gloss.addColorStop(0, 'rgba(255,255,255,0.32)');
-    gloss.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-    gloss.addColorStop(1, 'rgba(255,255,255,0)');
-    c.fillStyle = gloss;
-    c.fillRect(px + inset + bevel, py + inset + bevel, s - (inset + bevel) * 2, s - (inset + bevel) * 2);
-
-    c.strokeStyle = 'rgba(0,0,0,0.55)'; c.lineWidth = 1;
+    // 3. Clear black outline for maximum distinction between blocks
+    c.strokeStyle = '#000000';
+    c.lineWidth = 1;
     c.strokeRect(px + 0.5, py + 0.5, s - 1, s - 1);
   }
+
+  function renderBlockToCtxCute(c, px, py, size, type) {
+    const col = COLORS[type]; if (!col) return;
+    const s = size, r = s * 0.3;
+    c.beginPath();
+    c.moveTo(px+1+r, py+1); c.lineTo(px+s-1-r, py+1); c.arcTo(px+s-1, py+1, px+s-1, py+1+r, r);
+    c.lineTo(px+s-1, py+s-1-r); c.arcTo(px+s-1, py+s-1, px+s-1-r, py+s-1, r);
+    c.lineTo(px+1+r, py+s-1); c.arcTo(px+1, py+s-1, px+1, py+s-1-r, r);
+    c.lineTo(px+1, py+1+r); c.arcTo(px+1, py+1, px+1+r, py+1, r);
+    c.closePath();
+
+    c.fillStyle = col.base;
+    c.fill();
+
+    const grad = c.createLinearGradient(px, py, px, py + s);
+    grad.addColorStop(0, withAlpha('#ffffff', 0.6));
+    grad.addColorStop(0.4, withAlpha('#ffffff', 0.1));
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = grad;
+    c.fill();
+
+    c.fillStyle = '#ffffff';
+    c.beginPath(); c.arc(px + s * 0.25, py + s * 0.25, s * 0.08, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(px + s * 0.15, py + s * 0.35, s * 0.04, 0, Math.PI * 2); c.fill();
+
+    c.strokeStyle = shade(col.dark, -0.2);
+    c.lineWidth = 1.5;
+    c.stroke();
+  }
+
+  function renderBlockToCtxCyber(c, px, py, size, type) {
+    const col = COLORS[type]; if (!col) return;
+    const s = size, cx = px + s / 2, cy = py + s / 2;
+
+    // Vivid Base Color
+    const bgGrad = c.createLinearGradient(px, py, px + s, py + s);
+    bgGrad.addColorStop(0, col.light);
+    bgGrad.addColorStop(1, shade(col.dark, -0.4));
+    c.fillStyle = bgGrad; c.fillRect(px, py, s, s);
+
+    // Grid pattern background
+    c.strokeStyle = 'rgba(0,0,0,0.3)';
+    c.lineWidth = 1;
+    c.beginPath();
+    for(let i=1; i<4; i++) {
+      c.moveTo(px + (s/4)*i, py); c.lineTo(px + (s/4)*i, py + s);
+      c.moveTo(px, py + (s/4)*i); c.lineTo(px + s, py + (s/4)*i);
+    }
+    c.stroke();
+
+    // Dark Vignette
+    const glowGrad = c.createRadialGradient(cx, cy, 0, cx, cy, s * 0.9);
+    glowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    glowGrad.addColorStop(0.7, 'rgba(0,0,0,0.3)');
+    glowGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    c.fillStyle = glowGrad; c.fillRect(px, py, s, s);
+
+    // Neon runic diamond
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.strokeStyle = '#ffffff'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(cx, py + s * 0.12); c.lineTo(px + s * 0.88, cy); c.lineTo(cx, py + s * 0.88); c.lineTo(px + s * 0.12, cy); c.closePath(); c.stroke();
+
+    // Magic Circle
+    c.shadowBlur = 10; c.shadowColor = '#ffffff';
+    c.beginPath(); c.arc(cx, cy, s * 0.28, 0, Math.PI * 2); c.strokeStyle = '#ffffff'; c.lineWidth = 2; c.stroke();
+
+    c.beginPath(); c.arc(cx, cy, s * 0.08, 0, Math.PI * 2); c.fillStyle = '#ffffff'; c.fill();
+    c.shadowBlur = 0; c.fillStyle = '#000000';
+    c.beginPath(); c.ellipse(cx, cy, s * 0.02, s * 0.07, 0, 0, Math.PI * 2); c.fill();
+
+    // Constraints
+    c.shadowBlur = 5; c.shadowColor = '#000000'; c.strokeStyle = '#000000'; c.lineWidth = 3;
+    const cL = s * 0.25;
+    c.beginPath(); c.moveTo(px + cL, py + 2); c.lineTo(px + 2, py + 2); c.lineTo(px + 2, py + cL); c.stroke();
+    c.beginPath(); c.moveTo(px + s - cL, py + 2); c.lineTo(px + s - 2, py + 2); c.lineTo(px + s - 2, py + cL); c.stroke();
+    c.beginPath(); c.moveTo(px + cL, py + s - 2); c.lineTo(px + 2, py + s - 2); c.lineTo(px + 2, py + s - cL); c.stroke();
+    c.beginPath(); c.moveTo(px + s - cL, py + s - 2); c.lineTo(px + s - 2, py + s - 2); c.lineTo(px + s - 2, py + s - cL); c.stroke();
+
+    c.shadowBlur = 0; 
+    c.strokeStyle = col.light; c.lineWidth = 2; c.strokeRect(px + 1, py + 1, s - 2, s - 2);
+  }
+
   function drawBlock(c, x, y, size, type) { drawBlockAbs(c, x * size, y * size, size, type); }
+
   function drawFlashBlock(c, x, y, size, phase) {
     const px = x * size, py = y * size, s = size, a = 1 - phase * 0.8;
-    c.fillStyle = `rgba(255,255,255,${a})`; c.fillRect(px + 1, py + 1, s - 2, s - 2);
-    c.strokeStyle = `rgba(255,255,255,${a})`; c.lineWidth = 1;
-    c.strokeRect(px + 0.5, py + 0.5, s - 1, s - 1);
+    const style = getSkinStyle();
+    
+    if (style === 'pro') {
+      // Clean white flash, no scanlines, immediate fade out
+      c.fillStyle = `rgba(255, 255, 255, ${a})`;
+      c.fillRect(px, py, s, s);
+    } else if (style === 'cute') {
+      // Star burst
+      c.fillStyle = `rgba(255,255,255,${a * 0.8})`; c.beginPath(); c.arc(px+s/2, py+s/2, s*0.6, 0, Math.PI*2); c.fill();
+      c.fillStyle = `rgba(255, 200, 200, ${a})`;
+      // draw a star
+      const cx = px+s/2, cy = py+s/2, r1 = s*0.5, r2 = s*0.2;
+      c.beginPath();
+      for(let i=0; i<10; i++) {
+        const r = (i%2===0)?r1:r2;
+        const a = i * Math.PI / 5 - Math.PI / 2;
+        c.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r);
+      }
+      c.closePath(); c.fill();
+    } else {
+      // Cyber cross
+      c.fillStyle = `rgba(255,255,255,${a * 0.6})`; c.fillRect(px + 1, py + 1, s - 2, s - 2);
+      c.shadowBlur = 10; c.shadowColor = '#ffffff';
+      c.strokeStyle = `rgba(255,255,255,${a})`; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(px + s/2, py); c.lineTo(px + s/2, py + s); c.moveTo(px, py + s/2); c.lineTo(px + s, py + s/2); c.stroke();
+      c.shadowBlur = 0;
+    }
   }
+
   function drawGhostBlock(c, x, y, size, type) {
     const col = COLORS[type], px = x * size, py = y * size;
-    c.fillStyle = withAlpha(col.base, 0.10); c.fillRect(px + 2, py + 2, size - 4, size - 4);
-    c.strokeStyle = withAlpha(col.light, 0.55); c.setLineDash([4, 3]); c.lineWidth = 1.5;
-    c.strokeRect(px + 2, py + 2, size - 4, size - 4); c.setLineDash([]);
+    const s = size, cx = px + s / 2, cy = py + s / 2;
+    const style = getSkinStyle();
+
+    if (style === 'pro') {
+      // Pure clear outline, or flat translucent
+      c.fillStyle = withAlpha(col.base, 0.25);
+      c.fillRect(px, py, s, s);
+      c.strokeStyle = withAlpha(col.light, 0.6);
+      c.lineWidth = 2;
+      c.strokeRect(px + 1, py + 1, s - 2, s - 2);
+    } else if (style === 'cute') {
+      c.fillStyle = withAlpha(col.light, 0.2);
+      c.beginPath(); c.roundRect(px+2, py+2, s-4, s-4, s*0.3); c.fill();
+      c.strokeStyle = withAlpha(col.light, 0.8); c.lineWidth = 2; c.setLineDash([4, 4]);
+      c.beginPath(); c.roundRect(px+2, py+2, s-4, s-4, s*0.3); c.stroke(); c.setLineDash([]);
+    } else {
+      c.fillStyle = withAlpha(col.light, 0.10); c.fillRect(px + 1, py + 1, s - 2, s - 2);
+      c.strokeStyle = withAlpha(col.light, 0.8); c.lineWidth = 1.5;
+      c.beginPath(); c.arc(cx, cy, s * 0.3, 0, Math.PI * 2); c.stroke();
+      c.strokeStyle = withAlpha(col.base, 0.6); c.setLineDash([s * 0.15, s * 0.1]); c.lineWidth = 2;
+      c.strokeRect(px + 2, py + 2, s - 4, s - 4); c.setLineDash([]);
+    }
   }
+
   function drawLockDimBlock(c, x, y, size, type, dim) {
     drawBlock(c, x, y, size, type);
-    c.fillStyle = `rgba(255,255,255,${dim * 0.35})`;
-    c.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+    const style = getSkinStyle();
+    if (style === 'cute') {
+      c.fillStyle = `rgba(255,255,255,${dim * 0.4})`;
+      c.beginPath(); c.roundRect(x*size+1, y*size+1, size-2, size-2, size*0.3); c.fill();
+    } else {
+      c.fillStyle = `rgba(0,0,0,${dim * 0.65})`;
+      c.fillRect(x * size, y * size, size, size);
+    }
   }
+
   function drawCpuTargetBlock(c, x, y, size) {
-    const px = x * size, py = y * size;
-    c.fillStyle = 'rgba(255,180,60,0.10)'; c.fillRect(px + 2, py + 2, size - 4, size - 4);
-    c.strokeStyle = 'rgba(255,210,100,0.8)'; c.setLineDash([3, 3]); c.lineWidth = 1.5;
-    c.strokeRect(px + 2, py + 2, size - 4, size - 4); c.setLineDash([]);
+    const px = x * size, py = y * size, s = size;
+    // CPU Prediction Aura (Crimson Red / Danger)
+    c.fillStyle = 'rgba(255,0,0,0.15)'; c.fillRect(px + 2, py + 2, s - 4, s - 4);
+    c.strokeStyle = 'rgba(255,50,50,0.8)'; c.setLineDash([s * 0.1, s * 0.1]); c.lineWidth = 1.5;
+    c.strokeRect(px + 2, py + 2, s - 4, s - 4); c.setLineDash([]);
+    // Crosshair target
+    c.beginPath();
+    c.moveTo(px + s/2, py + 2); c.lineTo(px + s/2, py + s - 2);
+    c.moveTo(px + 2, py + s/2); c.lineTo(px + s - 2, py + s/2);
+    c.stroke();
   }
   function withAlpha(hex, a) { const [r, g, b] = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, ${a})`; }
   function shade(hex, amt) {
@@ -432,28 +612,6 @@
   };
   const PUYO_TYPES = ['R', 'B', 'G', 'Y', 'P'];
 
-  // One authentic Puyo white eye: big sclera with a sharp top point (splaying
-  // outward) and a round bottom that converges to the center, so the pair meets
-  // in the middle. Pupils are drawn separately (forward-facing) by the caller.
-  function drawPuyoPointedEye(c, ex, ey, ew, eh, rot, dark) {
-    c.save();
-    c.translate(ex, ey);
-    c.rotate(rot);
-    c.beginPath();
-    c.moveTo(0, -eh);                              // sharp top point
-    c.bezierCurveTo(ew, -eh * 0.85, ew, eh * 0.55, 0, eh);   // outer side -> round bottom
-    c.bezierCurveTo(-ew, eh * 0.55, -ew, -eh * 0.85, 0, -eh); // inner side -> back to point
-    c.closePath();
-    c.fillStyle = '#ffffff';
-    c.fill();
-    c.lineWidth = 1;
-    c.strokeStyle = dark;
-    c.globalAlpha = 0.3;
-    c.stroke();
-    c.globalAlpha = 1;
-    c.restore();
-  }
-
   function drawPuyo(c, x, y, size, type, grid, anim) {
     const px = x * size, py = y * size;
     const colors = PUYO_COLORS[type];
@@ -475,8 +633,6 @@
     c.save();
 
     // ── Squash & stretch / jiggle transform ──
-    // anim = { sx, sy, ox, oy, blink, flash }. Scaling anchors on the cell
-    // bottom so a landing puyo squishes onto the floor like a gel blob.
     if (anim) {
       if (anim.ox || anim.oy) c.translate(anim.ox || 0, anim.oy || 0);
       if ((anim.sx && anim.sx !== 1) || (anim.sy && anim.sy !== 1)) {
@@ -487,58 +643,74 @@
       }
     }
 
-    // ── Body shape (rounded with connection flattening) ──
+    // ── Body shape ──
     const rT = u ? 0 : radius;
     const rB = d ? 0 : radius;
     const rL = l ? 0 : radius;
     const rR = r ? 0 : radius;
     
     c.beginPath();
-    c.moveTo(cx, py + (u ? 0 : 2));
-    c.arcTo(px + size - (r ? 0 : 2), py + (u ? 0 : 2), px + size - (r ? 0 : 2), cy, rR);
-    c.arcTo(px + size - (r ? 0 : 2), py + size - (d ? 0 : 2), cx, py + size - (d ? 0 : 2), rB);
-    c.arcTo(px + (l ? 0 : 2), py + size - (d ? 0 : 2), px + (l ? 0 : 2), cy, rL);
-    c.arcTo(px + (l ? 0 : 2), py + (u ? 0 : 2), cx, py + (u ? 0 : 2), rT);
+    if (type === 'B' && !u) {
+      c.moveTo(px + (l ? 0 : 2), cy);
+      c.bezierCurveTo(px + (l ? 0 : 2), py - s * 0.1, cx - s * 0.1, py - s * 0.25, cx, py - s * 0.25);
+      c.bezierCurveTo(cx + s * 0.1, py - s * 0.25, px + s - (r ? 0 : 2), py - s * 0.1, px + s - (r ? 0 : 2), cy);
+    } else if (type === 'Y' && !u) {
+      c.moveTo(px + (l ? 0 : 2), cy);
+      c.bezierCurveTo(px + (l ? 0 : 2), py + s * 0.1, cx - s * 0.1, py - s * 0.05, cx + s * 0.15, py - s * 0.2);
+      c.bezierCurveTo(cx + s * 0.25, py - s * 0.1, px + s - (r ? 0 : 2), py + s * 0.1, px + s - (r ? 0 : 2), cy);
+    } else {
+      c.moveTo(px + (l ? 0 : 2), cy);
+      c.arcTo(px + (l ? 0 : 2), py + (u ? 0 : 2), cx, py + (u ? 0 : 2), rT);
+      c.arcTo(px + s - (r ? 0 : 2), py + (u ? 0 : 2), px + s - (r ? 0 : 2), cy, rR);
+    }
+    c.arcTo(px + s - (r ? 0 : 2), py + s - (d ? 0 : 2), cx, py + s - (d ? 0 : 2), rB);
+    c.arcTo(px + (l ? 0 : 2), py + s - (d ? 0 : 2), px + (l ? 0 : 2), cy, rL);
     c.closePath();
 
-    // ── Radial gradient body fill (3D sphere look) ──
-    const grad = c.createRadialGradient(cx - s * 0.15, cy - s * 0.18, s * 0.05, cx, cy, s * 0.52);
+    // ── Radial gradient body fill ──
+    const grad = c.createRadialGradient(cx - s * 0.15, cy - s * 0.15, s * 0.05, cx, cy, s * 0.6);
     grad.addColorStop(0, colors.light);
-    grad.addColorStop(0.45, colors.base);
+    grad.addColorStop(0.5, colors.base);
     grad.addColorStop(1, colors.dark);
     c.fillStyle = grad;
     c.fill();
 
     // ── Outline ──
     c.strokeStyle = colors.dark;
-    c.lineWidth = 1.6;
+    c.lineWidth = Math.max(1.5, s * 0.035);
     c.stroke();
 
-    // ── Big soft glossy dome highlight (wet gel shine) ──
-    const gloss = c.createRadialGradient(cx - s * 0.08, cy - s * 0.24, s * 0.02, cx - s * 0.04, cy - s * 0.16, s * 0.42);
-    gloss.addColorStop(0, 'rgba(255,255,255,0.78)');
-    gloss.addColorStop(0.55, 'rgba(255,255,255,0.20)');
-    gloss.addColorStop(1, 'rgba(255,255,255,0)');
-    c.fillStyle = gloss;
+    // ── Sharp glossy highlight (wet jelly shine) ──
+    c.save();
+    c.clip(); // clip to body shape
     c.beginPath();
-    c.ellipse(cx - s * 0.04, cy - s * 0.15, s * 0.32, s * 0.26, 0, 0, Math.PI * 2);
+    if (type === 'B' && !u) {
+      c.ellipse(cx - s * 0.1, cy - s * 0.05, s * 0.25, s * 0.35, Math.PI / 8, 0, Math.PI * 2);
+    } else if (type === 'Y' && !u) {
+      c.ellipse(cx - s * 0.05, cy - s * 0.05, s * 0.25, s * 0.35, Math.PI / 6, 0, Math.PI * 2);
+    } else {
+      c.ellipse(cx - s * 0.15, cy - s * 0.1, s * 0.28, s * 0.28, -Math.PI / 8, 0, Math.PI * 2);
+    }
+    const glossGrad = c.createLinearGradient(cx - s * 0.3, cy - s * 0.3, cx + s * 0.1, cy + s * 0.1);
+    glossGrad.addColorStop(0, 'rgba(255,255,255,0.85)');
+    glossGrad.addColorStop(1, 'rgba(255,255,255,0.0)');
+    c.fillStyle = glossGrad;
     c.fill();
+    c.restore();
 
     // ── EYES ──
+    const eyeCY = cy + s * 0.02;
     if (type === 'O') {
       // Garbage puyo: X-shaped eyes
       c.strokeStyle = '#374151';
       c.lineWidth = 2.5;
       c.lineCap = 'round';
-      // Left X
       c.beginPath(); c.moveTo(cx - 7, cy - 4); c.lineTo(cx - 2, cy + 1); c.stroke();
       c.beginPath(); c.moveTo(cx - 2, cy - 4); c.lineTo(cx - 7, cy + 1); c.stroke();
-      // Right X
       c.beginPath(); c.moveTo(cx + 2, cy - 4); c.lineTo(cx + 7, cy + 1); c.stroke();
       c.beginPath(); c.moveTo(cx + 7, cy - 4); c.lineTo(cx + 2, cy + 1); c.stroke();
     } else if (anim && anim.blink) {
-      // ── Blinking: closed, happy curved eyes (‿ ‿) ──
-      const eyeCY = cy + s * 0.02;
+      // Blinking: closed, happy curved eyes (‿ ‿)
       const eyeDX = s * 0.185;
       c.strokeStyle = colors.dark;
       c.lineWidth = Math.max(2, s * 0.06);
@@ -550,172 +722,139 @@
       c.arc(cx + eyeDX, eyeCY - s * 0.05, s * 0.16, 0.15 * Math.PI, 0.85 * Math.PI);
       c.stroke();
     } else {
-      const eyeCY = cy + s * 0.02;
-      c.strokeStyle = colors.dark;
-      c.lineCap = 'round';
-      c.lineJoin = 'round';
-
-      if (type === 'Y') {
-        // ── Yellow Puyo: Happy arc closed eyes (⌒ ⌒) ──
-        const eyeDX = s * 0.17;
-        c.lineWidth = Math.max(2.5, s * 0.08);
-        c.beginPath();
-        c.arc(cx - eyeDX, eyeCY + s * 0.08, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
-        c.stroke();
-        c.beginPath();
-        c.arc(cx + eyeDX, eyeCY + s * 0.08, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
-        c.stroke();
-      } 
-      else if (type === 'R') {
-        // ── Red Puyo: Angry eyes ──
-        const drawAngryEye = (isLeft) => {
-          c.save();
-          const ex = cx + (isLeft ? -s * 0.16 : s * 0.16);
-          c.translate(ex, eyeCY);
-          if (!isLeft) c.scale(-1, 1);
-          
-          c.beginPath();
-          c.moveTo(-s * 0.18, -s * 0.12); // outer-top
-          c.lineTo(s * 0.15, -s * 0.02);  // inner-top (angry slant)
-          c.bezierCurveTo(s * 0.18, s * 0.18, -s * 0.05, s * 0.22, -s * 0.18, s * 0.02); // round bottom
-          c.closePath();
-          c.fillStyle = '#ffffff';
-          c.fill();
-          c.lineWidth = 1.2;
-          c.strokeStyle = colors.dark;
-          c.stroke();
-
-          // Angry pupil
-          c.save();
-          c.clip();
-          c.fillStyle = '#111111';
-          c.beginPath();
-          c.arc(0, s * 0.08, s * 0.11, 0, Math.PI * 2);
-          c.fill();
-          // Sparkle highlight
-          c.fillStyle = '#ffffff';
-          c.beginPath();
-          c.arc(-s * 0.03, s * 0.04, s * 0.04, 0, Math.PI * 2);
-          c.fill();
-          c.restore();
-          c.restore();
-        };
-        drawAngryEye(true);
-        drawAngryEye(false);
-      }
-      else if (type === 'B') {
-        // ── Blue Puyo: Connected droopy eyes ──
-        c.save();
-        const drawBlueEyeSclera = (isLeft) => {
-          const ex = cx + (isLeft ? -s * 0.155 : s * 0.155);
-          c.save();
-          c.translate(ex, eyeCY);
-          if (!isLeft) c.scale(-1, 1);
-          c.beginPath();
-          c.moveTo(s * 0.02, -s * 0.08); // center connect point
-          c.bezierCurveTo(-s * 0.08, -s * 0.18, -s * 0.22, -s * 0.12, -s * 0.22, s * 0.05); // outer curve
-          c.bezierCurveTo(-s * 0.22, s * 0.22, s * 0.02, s * 0.22, s * 0.02, -s * 0.08); // bottom round
-          c.closePath();
-          c.fillStyle = '#ffffff';
-          c.fill();
-          c.lineWidth = 1.2;
-          c.strokeStyle = colors.dark;
-          c.stroke();
-          c.restore();
-        };
-        drawBlueEyeSclera(true);
-        drawBlueEyeSclera(false);
-
-        // Pupils
-        const drawBluePupil = (isLeft) => {
-          const ex = cx + (isLeft ? -s * 0.12 : s * 0.12);
-          c.save();
-          c.translate(ex, eyeCY + s * 0.06);
-          c.fillStyle = '#111111';
-          c.beginPath();
-          c.arc(0, 0, s * 0.11, 0, Math.PI * 2);
-          c.fill();
-          // Highlight
-          c.fillStyle = '#ffffff';
-          c.beginPath();
-          c.arc(-s * 0.03, -s * 0.03, s * 0.04, 0, Math.PI * 2);
-          c.fill();
-          c.restore();
-        };
-        drawBluePupil(true);
-        drawBluePupil(false);
-        c.restore();
-      }
-      else if (type === 'P') {
-        // ── Purple Puyo: Sleepy horizontal eyes ──
-        const drawSleepyEye = (isLeft) => {
-          c.save();
-          const ex = cx + (isLeft ? -s * 0.17 : s * 0.17);
-          c.translate(ex, eyeCY);
-          if (!isLeft) c.scale(-1, 1);
-          
-          c.beginPath();
-          c.ellipse(0, 0, s * 0.18, s * 0.12, 0.1, 0, Math.PI * 2);
-          c.fillStyle = '#ffffff';
-          c.fill();
-          c.lineWidth = 1.2;
-          c.strokeStyle = colors.dark;
-          c.stroke();
-
-          // Sleepy pupil
-          c.save();
-          c.clip();
-          c.fillStyle = '#111111';
-          c.beginPath();
-          c.ellipse(-s * 0.02, s * 0.04, s * 0.13, s * 0.09, 0, 0, Math.PI * 2);
-          c.fill();
-          // Highlight
-          c.fillStyle = '#ffffff';
-          c.beginPath();
-          c.arc(-s * 0.05, s * 0.01, s * 0.035, 0, Math.PI * 2);
-          c.fill();
-          c.restore();
-          c.restore();
-        };
-        drawSleepyEye(true);
-        drawSleepyEye(false);
-      }
-      else {
-        // ── Green Puyo & Default: Big round cute eyes (寄り目) ──
+      if (type === 'G') {
+        // ── Green Puyo: Large white eyes, giant dark green pupils, white arc reflection ──
         const drawGreenEye = (isLeft) => {
+          const dir = isLeft ? -1 : 1;
+          const ex = cx + dir * s * 0.15;
           c.save();
-          const ex = cx + (isLeft ? -s * 0.155 : s * 0.155);
           c.translate(ex, eyeCY);
+          // Sclera
           c.beginPath();
-          c.ellipse(0, 0, s * 0.17, s * 0.19, 0, 0, Math.PI * 2);
+          c.arc(0, 0, s * 0.22, 0, Math.PI * 2);
           c.fillStyle = '#ffffff';
           c.fill();
-          c.lineWidth = 1.2;
+          c.lineWidth = Math.max(1, s * 0.02);
           c.strokeStyle = colors.dark;
+          c.stroke();
+          // Pupil
+          c.beginPath();
+          c.arc(dir * -s * 0.01, s * 0.03, s * 0.18, 0, Math.PI * 2);
+          c.fillStyle = '#064e3b';
+          c.fill();
+          // Reflection arc
+          c.beginPath();
+          c.arc(dir * -s * 0.01, s * 0.03, s * 0.11, Math.PI * 1.1, Math.PI * 1.9);
+          c.lineWidth = s * 0.05;
+          c.lineCap = 'round';
+          c.strokeStyle = '#ffffff';
           c.stroke();
           c.restore();
         };
-        drawGreenEye(true);
-        drawGreenEye(false);
-
-        // Pupils
-        const drawGreenPupil = (isLeft) => {
+        drawGreenEye(true); drawGreenEye(false);
+      } else if (type === 'R') {
+        // ── Red Puyo: Angry eyes, slant down towards center ──
+        const drawRedEye = (isLeft) => {
+          const dir = isLeft ? -1 : 1;
+          const ex = cx + dir * s * 0.16;
           c.save();
-          const ex = cx + (isLeft ? -s * 0.105 : s * 0.105);
-          c.translate(ex, eyeCY + s * 0.04);
-          c.fillStyle = '#111111';
+          c.translate(ex, eyeCY);
+          // Sclera
           c.beginPath();
-          c.arc(0, 0, s * 0.11, 0, Math.PI * 2);
-          c.fill();
-          // Sparkle highlights
+          c.moveTo(dir * -0.14 * s, s * 0.02); 
+          c.lineTo(dir * 0.18 * s, -s * 0.14); 
+          c.bezierCurveTo(dir * 0.25 * s, s * 0.22, dir * -0.05 * s, s * 0.25, dir * -0.14 * s, s * 0.02);
+          c.closePath();
           c.fillStyle = '#ffffff';
-          c.beginPath();
-          c.arc(-s * 0.03, -s * 0.03, s * 0.04, 0, Math.PI * 2);
           c.fill();
+          c.lineWidth = Math.max(1, s * 0.02);
+          c.strokeStyle = colors.dark;
+          c.stroke();
+          // Pupil
+          c.save(); c.clip();
+          c.beginPath(); c.arc(dir * -0.04 * s, s * 0.14, s * 0.07, 0, Math.PI * 2);
+          c.fillStyle = '#450a0a'; c.fill();
+          // Highlight
+          c.beginPath(); c.arc(dir * -0.06 * s, s * 0.11, s * 0.025, 0, Math.PI * 2);
+          c.fillStyle = '#ffffff'; c.fill();
+          c.restore();
           c.restore();
         };
-        drawGreenPupil(true);
-        drawGreenPupil(false);
+        drawRedEye(true); drawRedEye(false);
+      } else if (type === 'B') {
+        // ── Blue Puyo: Droopy sad eyes, higher in center ──
+        const drawBlueEye = (isLeft) => {
+          const dir = isLeft ? -1 : 1;
+          const ex = cx + dir * s * 0.14;
+          c.save();
+          c.translate(ex, eyeCY + s * 0.03);
+          // Sclera
+          c.beginPath();
+          c.moveTo(dir * -0.14 * s, -s * 0.1); 
+          c.bezierCurveTo(dir * 0.1 * s, -s * 0.08, dir * 0.22 * s, s * 0.08, dir * 0.15 * s, s * 0.18); 
+          c.bezierCurveTo(dir * 0.05 * s, s * 0.22, dir * -0.1 * s, s * 0.15, dir * -0.14 * s, s * 0.05); 
+          c.closePath();
+          c.fillStyle = '#ffffff'; c.fill();
+          c.lineWidth = Math.max(1, s * 0.02); c.strokeStyle = colors.dark; c.stroke();
+          // Pupil
+          c.save(); c.clip();
+          c.beginPath(); c.arc(dir * -0.05 * s, s * 0.12, s * 0.07, 0, Math.PI * 2);
+          c.fillStyle = '#1e3a8a'; c.fill();
+          // Highlight
+          c.beginPath(); c.arc(dir * -0.07 * s, s * 0.09, s * 0.025, 0, Math.PI * 2);
+          c.fillStyle = '#ffffff'; c.fill();
+          c.restore();
+          c.restore();
+        };
+        drawBlueEye(true); drawBlueEye(false);
+      } else if (type === 'P') {
+        // ── Purple Puyo: Sleepy half-closed eyes ──
+        const drawPurpleEye = (isLeft) => {
+          const dir = isLeft ? -1 : 1;
+          const ex = cx + dir * s * 0.15;
+          c.save();
+          c.translate(ex, eyeCY - s * 0.02);
+          // Sclera (bottom half-circle)
+          c.beginPath();
+          c.arc(0, 0, s * 0.17, 0, Math.PI, false);
+          c.closePath();
+          c.fillStyle = '#ffffff'; c.fill();
+          c.lineWidth = Math.max(1, s * 0.02); c.strokeStyle = colors.dark; c.stroke();
+          // Pupil
+          c.save(); c.clip();
+          c.beginPath(); c.arc(0, s * 0.07, s * 0.1, 0, Math.PI * 2);
+          c.fillStyle = '#3b0764'; c.fill();
+          // Highlight
+          c.beginPath(); c.arc(dir * -s * 0.03, s * 0.04, s * 0.03, 0, Math.PI * 2);
+          c.fillStyle = '#ffffff'; c.fill();
+          c.restore();
+          c.restore();
+        };
+        drawPurpleEye(true); drawPurpleEye(false);
+      } else if (type === 'Y') {
+        // ── Yellow Puyo: Slanted ovals ──
+        const drawYellowEye = (isLeft) => {
+          const dir = isLeft ? -1 : 1;
+          const ex = cx + dir * s * 0.16;
+          c.save();
+          c.translate(ex, eyeCY);
+          c.rotate(Math.PI / 8); // Slant to the right for both eyes
+          // Sclera
+          c.beginPath();
+          c.ellipse(0, 0, s * 0.14, s * 0.2, 0, 0, Math.PI * 2);
+          c.fillStyle = '#ffffff'; c.fill();
+          c.lineWidth = Math.max(1, s * 0.02); c.strokeStyle = colors.dark; c.stroke();
+          // Pupil
+          c.save(); c.clip();
+          c.beginPath(); c.arc(0, s * 0.1, s * 0.08, 0, Math.PI * 2);
+          c.fillStyle = '#713f12'; c.fill();
+          // Highlight
+          c.beginPath(); c.arc(-s * 0.02, s * 0.06, s * 0.03, 0, Math.PI * 2);
+          c.fillStyle = '#ffffff'; c.fill();
+          c.restore();
+          c.restore();
+        };
+        drawYellowEye(true); drawYellowEye(false);
       }
     }
 
@@ -1229,7 +1368,13 @@
     }
     mergePiece(b.current, b.grid);
     if (settings.display.particles && !b.flashing) emitLockParticles(b, b.current, false);
-    if (!b.isCPU) window.audio.playSE('lock');
+    if (!b.isCPU) {
+      window.audio.playSE('lock');
+      if (settings.display.impact) {
+         hitStop(20);
+         pulseBoardWrap(b);
+      }
+    }
     const tspin = detectTSpin(b);
     const fullRows = [];
     for (let r = 0; r < ROWS; r++) if (b.grid[r].every(cell => cell)) fullRows.push(r);
@@ -1261,7 +1406,9 @@
     while (kept.length < ROWS) kept.unshift(Array(COLS).fill(null));
     for (let r = 0; r < ROWS; r++) b.grid[r] = kept[r];
     applyScoreAndFx(b, rows.length, tspin);
-    if (rows.length === 4 && !b.isCPU && settings.display.shake) shake(12);
+    if (rows.length >= 1 && !b.isCPU && settings.display.shake) {
+      shake(5 + rows.length * 4); // Scale shake by lines cleared (5, 9, 13, 17)
+    }
     b.flashing = null;
     b.current = null;
     spawn(b);
@@ -1639,25 +1786,26 @@
     const [r, g, bl] = hexToRgb(col.base);
     const [lr, lg, lb] = hexToRgb(col.light || col.base);
     const px = (cx + 0.5) * CELL, py = (cy + 0.5) * CELL;
-    // Radial shard burst — "はじけて消える" を超絶強化.
-    const N = 80; // 破片の数を劇的に増加
+    
+    // Hyper-immersive particle burst
+    const N = 120; // Massive increase in particles
     for (let i = 0; i < N; i++) {
       const angle = (i / N) * Math.PI * 2 + Math.random() * 0.5;
-      const speed = 3.0 + Math.random() * 8.0;
+      const speed = 5.0 + Math.random() * 15.0; // Explosion shoots further
       const white = i % 4 === 0;
       b.particles.push({
         x: px, y: py,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2.5 - Math.random() * 3.0,
-        life: 0.8 + Math.random() * 0.7, maxLife: 1.5,
-        size: 3 + Math.random() * 5, gravity: 0.2,
+        vy: Math.sin(angle) * speed - 5.0 - Math.random() * 5.0, // Anti-gravity upward bias
+        life: 1.0 + Math.random() * 1.5, maxLife: 2.5, // Linger longer
+        size: 4 + Math.random() * 8, gravity: 0.1, // Floatier
         rgb: white ? [lr, lg, lb] : [r, g, bl],
       });
     }
-    // Expanding pop ring.
+    // Expanding pop ring (Tetris Effect style massive shockwave)
     b.particles.push({
-      ring: true, x: px, y: py, r0: CELL * 0.28, grow: CELL * 2.5,
-      life: 0.4, maxLife: 0.4, gravity: 0, vx: 0, vy: 0, size: 0,
+      ring: true, x: px, y: py, r0: CELL * 0.5, grow: CELL * 5.0,
+      life: 0.8, maxLife: 0.8, gravity: 0, vx: 0, vy: 0, size: 0,
       rgb: [lr, lg, lb],
     });
   }
@@ -1721,7 +1869,8 @@
   }
   function hitStop(ms) {
     if (!settings.display.impact) return;
-    hitStopUntil = Math.max(hitStopUntil, performance.now() + ms);
+    // Enhance hit stop duration for 'immersion' impact
+    hitStopUntil = Math.max(hitStopUntil, performance.now() + ms * 1.5);
   }
   function pulseBoardWrap(b) {
     if (!settings.display.impact) return;
@@ -1842,45 +1991,6 @@
       b.ctx.stroke();
     }
   }
-
-  function drawBlock(ctx, x, y, cell, type) {
-    const col = COLORS[type];
-    if (!col) return;
-    ctx.fillStyle = col.base;
-    ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
-    ctx.fillStyle = col.light;
-    ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, 3);
-    ctx.fillRect(x * cell + 1, y * cell + 1, 3, cell - 2);
-    ctx.fillStyle = col.dark;
-    ctx.fillRect(x * cell + 1, y * cell + cell - 4, cell - 2, 3);
-    ctx.fillRect(x * cell + cell - 4, y * cell + 1, 3, cell - 2);
-  }
-
-  function drawGhostBlock(ctx, x, y, cell, type) {
-    const col = COLORS[type];
-    if (!col) return;
-    ctx.strokeStyle = col.base;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(x * cell + 2.5, y * cell + 2.5, cell - 5, cell - 5);
-  }
-
-  function drawFlashBlock(ctx, x, y, cell, phase) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${1.0 - phase})`;
-    ctx.fillRect(x * cell, y * cell, cell, cell);
-  }
-
-  function drawCpuTargetBlock(ctx, x, y, cell) {
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.0;
-    ctx.strokeRect(x * cell + 3.5, y * cell + 3.5, cell - 7, cell - 7);
-  }
-
-  function drawLockDimBlock(ctx, x, y, cell, type, dim) {
-    drawBlock(ctx, x, y, cell, type);
-    ctx.fillStyle = `rgba(0, 0, 0, ${dim * 0.4})`;
-    ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
-  }
-
   // NOTE: the authentic, cute drawPuyo (gradient body, big eyes, iris/pupil,
   // glossy highlight, smile) is defined earlier in this file. This older, plain
   // version used to shadow it (JS keeps the last function declaration), which is
@@ -2540,17 +2650,20 @@
   // Difficulty presets — control both action speed and eval noise.
   // Higher noise = worse choice; longer speed = slower moves.
   const CPU_PRESETS = {
-    easy:   { speed: 700, noise: 5.0, missChance: 0.35 },
-    normal: { speed: 180, noise: 1.2, missChance: 0.08 },
-    hard:   { speed: 60,  noise: 0.2, missChance: 0    },
-    expert: { speed: 15,  noise: 0,   missChance: 0    },
+    easy:   { speed: 700, noise: 1.5, missChance: 0.25 },
+    normal: { speed: 180, noise: 0.3, missChance: 0.05 },
+    hard:   { speed: 60,  noise: 0.0, missChance: 0    },
+    expert: { speed: 15,  noise: 0.0, missChance: 0    },
   };
   function cpuPreset() { return CPU_PRESETS[settings.cpu.difficulty] || CPU_PRESETS.normal; }
 
-  function findBestMove(piece, snapshot, noise = 0, missChance = 0) {
+  function findBestMove(piece, snapshot, noise = 0, missChance = 0, nextPiece = null) {
     const candidates = [];
     const shapes = ROTATIONS[piece.type];
-    for (let rot = 0; rot < shapes.length; rot++) {
+    // Fix O piece bug: only check rotation 0, as rotating it changes nothing visually
+    // but causes the CPU to try to rotate indefinitely and fail.
+    const numRotations = piece.type === 'O' ? 1 : shapes.length;
+    for (let rot = 0; rot < numRotations; rot++) {
       const matrix = shapes[rot];
       for (let x = -matrix.length; x <= COLS; x++) {
         let ok = true;
@@ -2568,7 +2681,20 @@
         testPiece.y = y;
         const simGrid = snapshot.map(r => r.slice());
         mergePiece(testPiece, simGrid);
+        
         let s = evaluateGrid(simGrid);
+        
+        // 2-piece lookahead
+        if (nextPiece) {
+          const nextPieceObj = { type: nextPiece, matrix: ROTATIONS[nextPiece][0], x: 3, y: 0, rotation: 0 };
+          const nextMove = findBestMove(nextPieceObj, simGrid, 0, 0, null);
+          if (nextMove) {
+            s = nextMove.score; // Use the final evaluated score of the board AFTER the next piece
+          } else {
+            s = -99999; // Heavily penalize moves that lead to instant death on the next piece
+          }
+        }
+        
         if (noise > 0) s += (Math.random() - 0.5) * 2 * noise;
         candidates.push({ score: s, x, y, rotation: rot, matrix });
       }
@@ -2590,9 +2716,14 @@
     if (b.cpuActionTimer < preset.speed) return;
     b.cpuActionTimer = 0;
     if (!b.cpuTarget) {
-      b.cpuTarget = b.type === 'puyo'
-        ? findBestMovePuyo(b.current, b.grid, preset.noise, preset.missChance)
-        : findBestMove(b.current, b.grid, preset.noise, preset.missChance);
+      if (b.type === 'puyo') {
+        b.cpuTarget = findBestMovePuyo(b.current, b.grid, preset.noise, preset.missChance);
+      } else {
+        // Enable 2-piece lookahead for hard/expert
+        const useLookahead = settings.cpu.difficulty === 'hard' || settings.cpu.difficulty === 'expert';
+        const nextPiece = (useLookahead && b.next && b.next.length > 0) ? b.next[0] : null;
+        b.cpuTarget = findBestMove(b.current, b.grid, preset.noise, preset.missChance, nextPiece);
+      }
       if (!b.cpuTarget) { hardDrop(b); return; }
     }
     if (b.current.rotation !== b.cpuTarget.rotation) {
@@ -3036,7 +3167,7 @@
   }
 
   const BG_COLORS = {
-    default: 'radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%)',
+    default: 'radial-gradient(circle at 50% 50%, #0a0a1a 0%, #000000 100%)',
     sky: 'linear-gradient(180deg, #bae6fd 0%, #38bdf8 100%)',
     pink: 'linear-gradient(180deg, #fbcfe8 0%, #f472b6 100%)',
     mint: 'linear-gradient(180deg, #a7f3d0 0%, #34d399 100%)',

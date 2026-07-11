@@ -87,7 +87,7 @@
 
           <button class="mode-card" data-mode="shop">
             <div class="card-glow"></div>
-            <div class="card-icon icon-shop" style="color:#ffb400; filter:drop-shadow(0 0 10px rgba(255,180,0,0.5));">
+            <div class="card-icon icon-shop" style="color:#00e5ff; filter:drop-shadow(0 0 10px rgba(0,229,255,0.5));">
               <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;stroke-linejoin:round;">
                 <path d="M10 20 L50 20 L45 50 L15 50 Z M20 20 A10 10 0 0 1 40 20" stroke="currentColor"/>
               </svg>
@@ -112,26 +112,26 @@
         <div class="mode-tagline"><span>◆</span><span>GACHA SHOP</span><span>◆</span></div>
         <h1 class="mode-title" data-text="GACHA SHOP">GACHA SHOP</h1>
         
-        <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,0.9); padding:12px 24px; border-radius:12px; border:1.5px solid var(--border-color); margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-          <span style="font-weight:bold; color:#d97706; font-size: 1.2rem;">所持コイン: <span id="shopCoinsDisplay">0</span> 🪙</span>
-          <span style="font-size:0.85rem; color:#64748b; font-weight: bold;">コレクション: スキン <span id="ownedSkinsCount">0</span>/20 | 背景 <span id="ownedBgsCount">0</span>/12</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(10,15,10,0.9); padding:12px 24px; border-radius:12px; border:1.5px solid var(--cyan); margin-bottom:20px; box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);">
+          <span style="font-weight:bold; color:var(--cyan); font-size: 1.2rem; font-family: monospace;">CREDITS: <span id="shopCoinsDisplay">0</span> 🪙</span>
+          <span style="font-size:0.85rem; color:#88c0a0; font-weight: bold; font-family: monospace;">DATA: SKINS <span id="ownedSkinsCount">0</span>/20 | BGS <span id="ownedBgsCount">0</span>/12</span>
         </div>
 
         <div class="type-selectors" style="gap: 20px; margin-bottom: 20px;">
           <!-- Skin Gacha Card -->
-          <div class="type-selector-box" style="flex: 1; align-items: center; justify-content: center; padding: 24px; background: rgba(255,255,255,0.8);">
+          <div class="type-selector-box" style="flex: 1; align-items: center; justify-content: center; padding: 24px; background: rgba(10,15,10,0.8); border: 1px solid var(--border-color);">
             <div style="font-size: 3rem; margin-bottom: 10px; animation: floatAnim 3s ease-in-out infinite;">🎁</div>
-            <h2>SKIN GACHA</h2>
-            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px; text-align:center;">全 20 種類<br>ブロックやぷよの着せ替えスキン</p>
-            <button id="pullSkinGachaBtn" class="type-start-btn" style="margin:0; width:100%; font-size:1.1rem; padding:12px;">100 🪙 で引く</button>
+            <h2 style="color: var(--green); font-family: monospace;">SKIN HACK</h2>
+            <p style="font-size: 0.8rem; color: #88c0a0; margin-bottom: 15px; text-align:center; font-family: monospace;">ALL 20 TYPES<br>Unlock visual parameters</p>
+            <button id="pullSkinGachaBtn" class="type-start-btn" style="margin:0; width:100%; font-size:1.1rem; padding:12px; font-family: monospace;">100 🪙 DECRYPT</button>
           </div>
 
           <!-- Bg Gacha Card -->
-          <div class="type-selector-box" style="flex: 1; align-items: center; justify-content: center; padding: 24px; background: rgba(255,255,255,0.8);">
+          <div class="type-selector-box" style="flex: 1; align-items: center; justify-content: center; padding: 24px; background: rgba(10,15,10,0.8); border: 1px solid var(--border-color);">
             <div style="font-size: 3rem; margin-bottom: 10px; animation: floatAnim 3s ease-in-out infinite; animation-delay: 1.5s;">🖼️</div>
-            <h2>BACKGROUND GACHA</h2>
-            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px; text-align:center;">全 12 種類（シークレット含む）<br>ゲーム背景テーマスキン</p>
-            <button id="pullBgGachaBtn" class="type-start-btn" style="margin:0; width:100%; font-size:1.1rem; padding:12px;">100 🪙 で引く</button>
+            <h2 style="color: var(--green); font-family: monospace;">BG HACK</h2>
+            <p style="font-size: 0.8rem; color: #88c0a0; margin-bottom: 15px; text-align:center; font-family: monospace;">ALL 12 TYPES<br>Unlock environmental data</p>
+            <button id="pullBgGachaBtn" class="type-start-btn" style="margin:0; width:100%; font-size:1.1rem; padding:12px; font-family: monospace;">100 🪙 DECRYPT</button>
           </div>
         </div>
 
