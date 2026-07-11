@@ -3769,6 +3769,7 @@
       }
       gameFrame.style.animation = 'none'; void gameFrame.offsetWidth; gameFrame.style.animation = '';
       reset();
+      resizeGameFrame();
       if (settings.audio.bgm) { window.audio.startBGM(); bgmStartedOnce = true; }
       updateModeBadge();
       spawnPopup(playerBoard, mode === 'cpu' ? 'VS CPU' : mode.toUpperCase(), 'popup-mode');
@@ -3789,6 +3790,7 @@
       gameFrame.classList.remove('hidden');
       gameFrame.style.animation = 'none'; void gameFrame.offsetWidth; gameFrame.style.animation = '';
       reset();
+      resizeGameFrame();
       if (settings.audio.bgm) { window.audio.startBGM(); bgmStartedOnce = true; }
       updateModeBadge();
       spawnPopup(playerBoard, 'FIGHT!', 'popup-mode');
@@ -3862,9 +3864,26 @@
     }
   }
 
-  // ---------- MODE BG ----------
+  // ---------- MODE BG & RESIZE ----------
   function resizeModeBg() { modeBgCanvas.width = window.innerWidth; modeBgCanvas.height = window.innerHeight; }
   window.addEventListener('resize', resizeModeBg); resizeModeBg();
+  
+  function resizeGameFrame() {
+    if (appState !== 'playing') {
+      gameFrame.style.transform = '';
+      return;
+    }
+    const isMobile = window.matchMedia('(max-width: 1024px) and (pointer: coarse)').matches;
+    if (!isMobile) {
+      gameFrame.style.transform = '';
+      return;
+    }
+    const isDual = (mode === 'cpu' || mode === 'online');
+    const baseWidth = isDual ? 1200 : 850;
+    const scale = Math.min(1, window.innerWidth / baseWidth);
+    gameFrame.style.transform = `scale(${scale})`;
+  }
+  window.addEventListener('resize', resizeGameFrame);
   function spawnBgPiece() {
     const type = TYPES[Math.floor(Math.random() * TYPES.length)];
     const size = 14 + Math.random() * 22;

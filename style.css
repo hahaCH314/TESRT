@@ -1577,11 +1577,9 @@ input[type="range"].range::-moz-range-thumb {
   /* Scale down the game container on mobile to perfectly fit the screen width */
   .game-frame {
     transform-origin: top center;
-    transform: scale(calc(100vw / 850));
     margin-top: 10px !important;
   }
   body.mode-cpu .game-frame, body.mode-online .game-frame {
-    transform: scale(calc(100vw / 1500));
     transform-origin: top center;
   }
   
