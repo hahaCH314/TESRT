@@ -3591,9 +3591,9 @@
             friendsOnline[data.from] = true;
             refreshFriendsList();
           } else if (data.type === 'invite') {
-            spawnPopup(playerBoard, 'FRIEND INVITE RECEIVED', 'popup-mode');
-            $('onlineStatus').textContent = `フレンド [${data.from}] から対戦申請が届きました。`;
-            $('joinPeerIdInput').value = data.from;
+            spawnPopup(playerBoard, 'FRIEND INVITE', 'popup-mode');
+            $('onlineStatus').textContent = `フレンド [${data.from}] と接続中...`;
+            window.connectToRoom(data.from);
           }
         }
       } catch (e) {
@@ -3638,8 +3638,10 @@
     });
   }
   window.connectToRoom = (id) => {
-    $('joinPeerIdInput').value = id;
-    $('onlineConnectBtn').click();
+    if (!p2pPeer) return;
+    const conn = p2pPeer.connect(id);
+    p2pIsHost = false;
+    setupP2PConnection(conn);
   };
 
   function refreshFriendsList() {
@@ -3687,8 +3689,8 @@
     });
   }
   window.inviteFriend = (fId) => {
-    if (mqttClient && mqttClient.connected) {
-      mqttClient.publish(`puyotetris/friend/${fId}`, JSON.stringify({ type: 'invite', from: myPeerId }));
+    if (mqttClient && mqttClient.connected && p2pPeer) {
+      mqttClient.publish(`puyotetris/friend/${fId}`, JSON.stringify({ type: 'invite', from: p2pPeer.id }));
       $('onlineStatus').textContent = `フレンド [${fId.slice(0,8)}] に対戦申請を送信しました。`;
     }
   };
@@ -4142,7 +4144,7 @@
       return;
     }
     if (b.isCPU) cpuStep(b, dt);
-    else processHeld(t);
+    else if (b === playerBoard) processHeld(t);
     const isSoft = !b.isCPU && (!!held.softDrop || !!padHeld.softDrop);
     const interval = isSoft ? Math.max(16, b.dropInterval / settings.handling.sdf) : b.dropInterval;
     const ground = b.current ? isOnGround(b) : false;
@@ -4198,6 +4200,44 @@
     }
     requestAnimationFrame(loop);
   }
+
+  // ---------- TOUCH CONTROLS ----------
+  function initTouchControls() {
+    const btns = document.querySelectorAll('.t-btn');
+    const touchState = {};
+
+    btns.forEach(btn => {
+      const action = btn.dataset.action;
+      
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevent scroll/zoom
+        if (window.audio) window.audio.resume();
+        if (!bgmStartedOnce && settings.audio.bgm && appState === 'playing' && window.audio) { window.audio.startBGM(); bgmStartedOnce = true; }
+        
+        if (!touchState[action]) {
+          touchState[action] = true;
+          const now = performance.now();
+          if (!held[action]) { 
+            held[action] = { since: now, lastTrigger: now }; 
+            triggerAction(action); 
+          }
+        }
+      }, { passive: false });
+
+      const release = (e) => {
+        e.preventDefault();
+        if (touchState[action]) {
+          touchState[action] = false;
+          if (held[action]) delete held[action];
+        }
+      };
+
+      btn.addEventListener('touchend', release, { passive: false });
+      btn.addEventListener('touchcancel', release, { passive: false });
+    });
+  }
+  
+  initTouchControls();
 
   applyDisplaySettings();
   applyAudioSettings();

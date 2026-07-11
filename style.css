@@ -1555,3 +1555,103 @@ input[type="range"].range::-moz-range-thumb {
   z-index: 10;
   border-radius: 4px;
 }
+
+/* --- MOBILE TOUCH CONTROLS --- */
+.touch-controls {
+  display: none;
+}
+
+@media (pointer: coarse) and (max-width: 1024px) {
+  .touch-controls {
+    display: flex;
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    justify-content: space-between;
+    padding: 0 15px;
+    z-index: 1000;
+    pointer-events: none; /* Let clicks pass through empty spaces */
+  }
+
+  /* Scale down the game container on mobile to fit the controls */
+  .workspace {
+    transform-origin: top center;
+    transform: scale(0.65);
+    margin-top: 10px !important;
+  }
+  
+  /* In VS CPU Mode, the two boards take up too much width on mobile portrait */
+  @media (orientation: portrait) {
+    .workspace {
+      transform: scale(0.45);
+    }
+    .touch-controls {
+      bottom: 10px;
+    }
+  }
+
+  .touch-controls .dpad,
+  .touch-controls .action-pad {
+    display: grid;
+    pointer-events: auto; /* Re-enable clicks for the buttons */
+  }
+
+  .touch-controls .dpad {
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px;
+    gap: 10px;
+  }
+  .btn-left { grid-column: 1; grid-row: 2; }
+  .btn-down { grid-column: 2; grid-row: 2; }
+  .btn-right { grid-column: 3; grid-row: 2; }
+
+  .touch-controls .action-pad {
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px;
+    gap: 10px;
+    direction: rtl; /* Align to right */
+  }
+  .btn-hard { grid-column: 1; grid-row: 2; }
+  .btn-cw { grid-column: 2; grid-row: 2; }
+  .btn-ccw { grid-column: 3; grid-row: 2; }
+  .btn-hold { grid-column: 1; grid-row: 1; grid-column-end: span 2; }
+
+  .t-btn {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none; /* Prevent default touch actions like scroll */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  }
+  
+  .t-btn:active {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(34, 230, 255, 0.8);
+    transform: scale(0.95);
+  }
+  
+  .btn-hold {
+    border-radius: 20px;
+    font-size: 14px;
+  }
+  
+  .btn-hard {
+    background: rgba(255, 62, 165, 0.2);
+    border-color: rgba(255, 62, 165, 0.5);
+  }
+  
+  .btn-hard:active {
+    background: rgba(255, 62, 165, 0.5);
+    border-color: rgba(255, 62, 165, 1);
+  }
+}

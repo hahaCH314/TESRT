@@ -1,0 +1,17 @@
+{
+  "name": "TETRIS",
+  "short_name": "TETRIS",
+  "description": "Modern Web Tetris with PWA support",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#05000f",
+  "theme_color": "#05000f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

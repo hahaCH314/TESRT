@@ -2,6 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05000f">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-touch-icon" href="icon.svg">
 <title>TETRIS</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -341,25 +347,6 @@
           <div id="score" class="digi digi-amber">0000</div>
         </div>
       </div>
-    </div>
-
-    <!-- CPU FRAME (only visible in VS mode) -->
-    <div class="game-frame cpu-frame hidden" id="cpuFrame">
-      <div class="col col-left">
-        <div class="panel next-panel">
-          <div class="panel-label">NEXT</div>
-          <canvas id="next2" width="96" height="240"></canvas>
-        </div>
-        <div class="spacer"></div>
-        <div class="panel digi-panel">
-          <div class="mini-label">LINE</div>
-          <div id="lines2" class="digi">000</div>
-        </div>
-        <div class="panel digi-panel">
-          <div class="mini-label">SCORE</div>
-          <div id="score2" class="digi digi-amber">0000</div>
-        </div>
-      </div>
 
       <div class="board-wrap">
         <div class="warning-queue" id="warningQueue2"></div>
@@ -390,6 +377,21 @@
           <div class="mini-label">GARBAGE</div>
           <div id="garbage2" class="mini-value">0</div>
         </div>
+      </div>
+    </div>
+
+    <!-- MOBILE TOUCH CONTROLS -->
+    <div id="touchControls" class="touch-controls hidden">
+      <div class="dpad">
+        <button class="t-btn btn-left" data-action="moveLeft">◄</button>
+        <button class="t-btn btn-down" data-action="softDrop">▼</button>
+        <button class="t-btn btn-right" data-action="moveRight">►</button>
+      </div>
+      <div class="action-pad">
+        <button class="t-btn btn-ccw" data-action="rotateCCW">↺</button>
+        <button class="t-btn btn-cw" data-action="rotateCW">↻</button>
+        <button class="t-btn btn-hold" data-action="hold">HOLD</button>
+        <button class="t-btn btn-hard" data-action="hardDrop">DROP</button>
       </div>
     </div>
 
@@ -585,5 +587,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" integrity="sha384-d+vyQ0dYcymoP8ndq2hW7FGC50nqGdXUEgoOUGxbbkAJwZqL7h+jKN0GGgn9hFDS" crossorigin="anonymous"></script>
   <script src="audio.js?v=6"></script>
   <script src="game.js?v=6"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('ServiceWorker registered:', reg.scope);
+        }).catch(err => {
+          console.error('ServiceWorker registration failed:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
