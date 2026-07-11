@@ -3016,7 +3016,8 @@
     statusEl.style.color = '#22e6ff';
 
     // Initialize PeerJS
-    p2pPeer = new Peer();
+    const shortId = Math.random().toString(36).substr(2, 6).toUpperCase();
+    p2pPeer = new Peer(shortId);
 
     p2pPeer.on('open', (id) => {
       p2pIsHost = true;
@@ -3771,6 +3772,7 @@
       if (settings.audio.bgm) { window.audio.startBGM(); bgmStartedOnce = true; }
       updateModeBadge();
       spawnPopup(playerBoard, mode === 'cpu' ? 'VS CPU' : mode.toUpperCase(), 'popup-mode');
+      if ('ontouchstart' in window) $('touchControls').classList.remove('hidden');
     }
   });
 
@@ -3790,6 +3792,7 @@
       if (settings.audio.bgm) { window.audio.startBGM(); bgmStartedOnce = true; }
       updateModeBadge();
       spawnPopup(playerBoard, 'FIGHT!', 'popup-mode');
+      if ('ontouchstart' in window) $('touchControls').classList.remove('hidden');
     }
   }
 
@@ -3840,6 +3843,7 @@
     typeSelect.classList.add('hidden');
     $('onlineLobby').classList.add('hidden');
     $('shopPanel').classList.add('hidden');
+    $('touchControls').classList.add('hidden');
     modeSelect.classList.remove('hidden'); modeBgCanvas.classList.add('visible');
     modeCards.forEach(c => { c.classList.remove('selecting', 'dismissing'); c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; c.style.transform = ''; });
   }
@@ -4245,5 +4249,34 @@
   applyActiveBg();
   updateCustomizeDropdowns();
   lastTime = performance.now();
+  function initTouchControls() {
+    const touchControls = $('touchControls');
+    if (!touchControls) return;
+
+    const btns = touchControls.querySelectorAll('.t-btn');
+    btns.forEach(btn => {
+      const action = btn.dataset.action;
+      if (!action) return;
+      
+      const startHandler = (e) => {
+        e.preventDefault();
+        window.audio.resume();
+        if (!bgmStartedOnce && settings.audio.bgm && appState === 'playing') { window.audio.startBGM(); bgmStartedOnce = true; }
+        if (!padHeld[action]) padHeld[action] = { since: performance.now(), lastTrigger: performance.now() };
+        triggerAction(action);
+      };
+      
+      const endHandler = (e) => {
+        e.preventDefault();
+        delete padHeld[action];
+      };
+
+      btn.addEventListener('touchstart', startHandler, { passive: false });
+      btn.addEventListener('touchend', endHandler, { passive: false });
+      btn.addEventListener('touchcancel', endHandler, { passive: false });
+    });
+  }
+  
+  initTouchControls();
   requestAnimationFrame(loop);
 })();

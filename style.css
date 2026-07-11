@@ -1574,18 +1574,19 @@ input[type="range"].range::-moz-range-thumb {
     pointer-events: none; /* Let clicks pass through empty spaces */
   }
 
-  /* Scale down the game container on mobile to fit the controls */
-  .workspace {
+  /* Scale down the game container on mobile to perfectly fit the screen width */
+  .game-frame {
     transform-origin: top center;
-    transform: scale(0.65);
+    transform: scale(calc(100vw / 850));
     margin-top: 10px !important;
+  }
+  body.mode-cpu .game-frame, body.mode-online .game-frame {
+    transform: scale(calc(100vw / 1500));
+    transform-origin: top center;
   }
   
   /* In VS CPU Mode, the two boards take up too much width on mobile portrait */
   @media (orientation: portrait) {
-    .workspace {
-      transform: scale(0.45);
-    }
     .touch-controls {
       bottom: 10px;
     }
