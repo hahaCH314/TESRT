@@ -301,7 +301,19 @@
     12:'D-Pad ↑', 13:'D-Pad ↓', 14:'D-Pad ←', 15:'D-Pad →',
     16:'Home',
   };
-  function padLabel(v) { if (v == null) return '—'; return PAD_BUTTON_LABELS[v] ?? ('Btn ' + v); }
+  function padLabel(v) { 
+    if (v == null) return '—'; 
+    if (typeof v === 'string' && v.startsWith('axis')) {
+      const axis = v.charAt(4);
+      const dir = v.charAt(5);
+      if (axis === '0') return dir === '-' ? 'L-Stick ←' : 'L-Stick →';
+      if (axis === '1') return dir === '-' ? 'L-Stick ↑' : 'L-Stick ↓';
+      if (axis === '2') return dir === '-' ? 'R-Stick ←' : 'R-Stick →';
+      if (axis === '3') return dir === '-' ? 'R-Stick ↑' : 'R-Stick ↓';
+      return `Axis ${axis} ${dir}`;
+    }
+    return PAD_BUTTON_LABELS[v] ?? ('Btn ' + v); 
+  }
 
   function deepMerge(def, val) {
     if (val === null || typeof val !== 'object' || Array.isArray(val)) return def;
@@ -851,6 +863,8 @@
       dropTimer: 0,
       flashing: null,
       particles: [],
+      trails: [],
+      shockwaves: [],
       lastActionWasRotate: false,
       combo: -1,
       b2b: 0,
@@ -1051,7 +1065,7 @@
         b.current.rotation = oppositeRot;
         // Swap colors for intuitive visual flip
         const tmp = b.current.p1; b.current.p1 = b.current.p2; b.current.p2 = tmp;
-        if (!b.isCPU) window.audio.playSE('puyoRotate');
+        if (!b.isCPU) { window.audio.playSE('puyoRotate'); if (settings.display.shake) boardTiltY += (dir > 0 ? 6 : -6); }
         consumeLockReset(b);
         return true;
       }
@@ -1073,7 +1087,7 @@
         b.lastActionWasRotate = true;
         b.lastKickIndex = i;
         consumeLockReset(b);
-        if (!b.isCPU) window.audio.playSE('rotate');
+        if (!b.isCPU) { window.audio.playSE('rotate'); if (settings.display.shake) boardTiltY += (dir > 0 ? 6 : -6); }
         if (b.current.rotateCount >= 15) { spawnPopup(b, 'FORCED DROP', 'popup-b2b'); hardDrop(b); }
         return true;
       }
@@ -1086,19 +1100,30 @@
       if (!puyoCollides(b.current.x + dx, b.current.y, b.current.rotation, b.grid)) {
         b.current.x += dx;
         consumeLockReset(b);
-        if (!b.isCPU) window.audio.playSE('puyoMove');
+        if (!b.isCPU) {
+          window.audio.playSE('puyoMove');
+          if (settings.display.shake) boardTiltY += dx * 4;
+        }
         return true;
       }
       return false;
     }
     const test = { ...b.current, x: b.current.x + dx };
-    if (!collides(test, b.grid)) { b.current = test; b.lastActionWasRotate = false; consumeLockReset(b); if (!b.isCPU) window.audio.playSE('move'); return true; }
+    if (!collides(test, b.grid)) { 
+      b.current = test; b.lastActionWasRotate = false; consumeLockReset(b); 
+      if (!b.isCPU) {
+        window.audio.playSE('move');
+        if (settings.display.shake) boardTiltY += dx * 4;
+      }
+      return true; 
+    }
     return false;
   }
   function stepDown(b, userTriggered) {
     if (!b.current || b.gameOver || paused || b.flashing) return false;
     if (b.type === 'puyo') {
       if (!puyoCollides(b.current.x, b.current.y + 1, b.current.rotation, b.grid)) {
+        if (userTriggered) b.trails.push({ ...b.current, alpha: 0.35, typeMode: 'puyo' });
         b.current.y++;
         if (userTriggered) b.score += 1;
         return true;
@@ -1107,6 +1132,7 @@
     }
     const test = { ...b.current, y: b.current.y + 1 };
     if (!collides(test, b.grid)) {
+      if (userTriggered) b.trails.push({ ...b.current, alpha: 0.35, typeMode: 'tetris' });
       b.current = test;
       if (userTriggered) b.score += 1;
       b.lastActionWasRotate = false;
@@ -1119,24 +1145,40 @@
     let drop = 0;
     if (b.type === 'puyo') {
       while (!puyoCollides(b.current.x, b.current.y + 1, b.current.rotation, b.grid)) {
+        b.trails.push({ ...b.current, alpha: 0.45, typeMode: 'puyo' });
         b.current.y++;
         drop++;
       }
       b.score += drop * 2;
       if (!b.isCPU) {
-        if (settings.display.shake) shake(5 + Math.min(4, drop * 0.3));
+        if (settings.display.shake) shake(8 + Math.min(6, drop * 0.4));
         window.audio.playSE('puyoPlace');
+        hitStop(60);
+        pulseBoardWrap(b);
+        b.shockwaves.push({ x: (b.current.x + 0.5) * CELL, y: (b.current.y + 0.5) * CELL, radius: 10, alpha: 1, thickness: 15 });
+        boardTiltX -= 12;
+        boardScale = 0.95;
       }
       lockPiece(b);
       return;
     }
-    while (!collides({ ...b.current, y: b.current.y + 1 }, b.grid)) { b.current.y++; drop++; }
+    while (!collides({ ...b.current, y: b.current.y + 1 }, b.grid)) { 
+      b.trails.push({ ...b.current, alpha: 0.45, typeMode: 'tetris' });
+      b.current.y++; 
+      drop++; 
+    }
     b.score += drop * 2;
     if (drop > 0) b.lastActionWasRotate = false;
     if (!b.isCPU) {
-      if (settings.display.shake) shake(6 + Math.min(6, drop * 0.4));
+      if (settings.display.shake) shake(10 + Math.min(8, drop * 0.5));
       if (settings.display.particles) emitLockParticles(b, b.current, true);
       window.audio.playSE('hardDrop');
+      hitStop(80);
+      pulseBoardWrap(b);
+      const bw = b.current.matrix ? b.current.matrix[0].length * CELL : CELL;
+      b.shockwaves.push({ x: (b.current.x * CELL) + bw/2, y: (b.current.y + 1) * CELL, radius: 10, alpha: 1, thickness: 15 });
+      boardTiltX -= 12;
+      boardScale = 0.95;
     } else {
       if (settings.display.particles) emitLockParticles(b, b.current, true);
     }
@@ -1297,7 +1339,11 @@
         const spells = ["FIRE!", "ICE STORM!", "DIACUTE!", "BRAIN DAMNED!", "JUGEM!", "BAYOEN!"];
         const spell = spells[Math.min(spells.length, b.puyoChain) - 1];
         triggerCutIn(`${b.puyoChain} CHAIN: ${spell}`);
-        spawnPopup(b, `${b.puyoChain} CHAIN!`, 'popup-combo');
+        if (b.puyoChain >= 3) {
+          spawnMassiveText(b, `${b.puyoChain} CHAIN!`, '#ffb400');
+        } else {
+          spawnPopup(b, `${b.puyoChain} CHAIN!`, 'popup-combo');
+        }
       }
 
       setTimeout(() => {
@@ -1362,7 +1408,7 @@
         flashBoardWrap(b);
         chromaBoardWrap(b);
         boostVignette();
-        if (settings.display.shake) shake(cleared > 0 ? 10 + cleared * 2 : 6);
+        if (settings.display.shake) { shake(cleared > 0 ? 10 + cleared * 2 : 6); boardScale = 1.1 + cleared * 0.05; boardTiltX -= 15; }
       }
     } else if (cleared > 0) {
       base = [0, 100, 300, 500, 800][cleared];
@@ -1375,13 +1421,13 @@
         // Impact FX escalation: bigger clears = stronger response
         if (cleared === 4) {
           hitStop(120); pulseBoardWrap(b); flashBoardWrap(b); chromaBoardWrap(b); boostVignette();
-          if (settings.display.shake) shake(14);
+          if (settings.display.shake) { shake(14); boardScale = 1.15; boardTiltX -= 15; }
         } else if (cleared === 3) {
           hitStop(60); pulseBoardWrap(b); flashBoardWrap(b);
-          if (settings.display.shake) shake(8);
+          if (settings.display.shake) { shake(8); boardScale = 1.1; boardTiltX -= 10; }
         } else if (cleared === 2) {
           pulseBoardWrap(b);
-          if (settings.display.shake) shake(5);
+          if (settings.display.shake) { shake(5); boardScale = 1.05; }
         } else {
           pulseBoardWrap(b);
         }
@@ -1428,7 +1474,13 @@
         if (g > 0) sendGarbage(b, g);
       }
     }
-    if (label) spawnPopup(b, label, popupClass);
+    if (label) {
+      if (label === 'TETRIS' || label.includes('T-SPIN')) {
+        spawnMassiveText(b, label, label === 'TETRIS' ? '#22e6ff' : '#ff3ea5');
+      } else {
+        spawnPopup(b, label, popupClass);
+      }
+    }
     if (total > 0) spawnPopup(b, `+${total}`, 'popup-points');
     if (b.scoreEl) bumpDigi(b.scoreEl);
     if (cleared > 0 && b.linesEl) bumpDigi(b.linesEl);
@@ -1617,6 +1669,16 @@
       p.life -= dt / 1000;
       if (p.life <= 0 || p.y > ROWS * CELL + 20) b.particles.splice(i, 1);
     }
+    for (let i = b.trails.length - 1; i >= 0; i--) {
+      b.trails[i].alpha -= (dt / 1000) * 2.0;
+      if (b.trails[i].alpha <= 0) b.trails.splice(i, 1);
+    }
+    for (let i = b.shockwaves.length - 1; i >= 0; i--) {
+      b.shockwaves[i].radius += (dt / 1000) * 180;
+      b.shockwaves[i].alpha -= (dt / 1000) * 2.5;
+      b.shockwaves[i].thickness = Math.max(1, b.shockwaves[i].thickness - (dt / 1000) * 25);
+      if (b.shockwaves[i].alpha <= 0) b.shockwaves.splice(i, 1);
+    }
   }
   function drawParticles(b) {
     if (!settings.display.particles) return;
@@ -1630,14 +1692,32 @@
   // ---------- SHAKE / FX / POPUPS (global) ----------
   let shakeAmount = 0;
   let hitStopUntil = 0;
-  function shake(amt) { shakeAmount = Math.max(shakeAmount, amt * 1.8); } // 揺れ幅を全体的に1.8倍に
+  let boardTiltX = 0;
+  let boardTiltY = 0;
+  let boardScale = 1;
+
+  function shake(amt) { shakeAmount = Math.max(shakeAmount, amt * 1.8); }
   function applyShake() {
-    if (shakeAmount <= 0.3) { if (shakeAmount !== 0) { gameFrame.style.transform = ''; if (cpuFrame) cpuFrame.style.transform = ''; shakeAmount = 0; } return; }
+    boardTiltX *= 0.85;
+    boardTiltY *= 0.85;
+    boardScale += (1 - boardScale) * 0.15;
+
+    if (shakeAmount <= 0.3 && Math.abs(boardTiltX) < 0.5 && Math.abs(boardTiltY) < 0.5 && Math.abs(boardScale - 1) < 0.01) { 
+      if (shakeAmount !== 0 || boardTiltX !== 0 || boardTiltY !== 0 || Math.abs(boardScale - 1) >= 0.01) { 
+        gameFrame.style.transform = ''; 
+        if (cpuFrame) cpuFrame.style.transform = ''; 
+        shakeAmount = 0; boardTiltX = 0; boardTiltY = 0; boardScale = 1;
+      } 
+      return; 
+    }
     const x = (Math.random() - 0.5) * shakeAmount;
     const y = (Math.random() - 0.5) * shakeAmount;
-    gameFrame.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-    if (cpuFrame) cpuFrame.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-    shakeAmount *= 0.90; // 減衰を少しゆっくりにして揺れを長引かせる
+    
+    const transformStr = `perspective(800px) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotateX(${boardTiltX.toFixed(2)}deg) rotateY(${boardTiltY.toFixed(2)}deg) scale(${boardScale.toFixed(3)})`;
+    gameFrame.style.transform = transformStr;
+    if (cpuFrame) cpuFrame.style.transform = transformStr;
+    
+    shakeAmount *= 0.90; 
   }
   function hitStop(ms) {
     if (!settings.display.impact) return;
@@ -1685,13 +1765,38 @@
     b.popupLayer.appendChild(beam);
     setTimeout(() => beam.remove(), 600);
   }
+  function spawnMassiveText(b, text, color) {
+    if (!settings.display.popups || !b.popupLayer || !window.gsap) return;
+    const el = document.createElement('div');
+    el.textContent = text;
+    el.style.position = 'absolute';
+    el.style.top = '50%';
+    el.style.left = '50%';
+    el.style.transform = 'translate(-50%, -50%)';
+    el.style.color = color || '#fff';
+    el.style.fontSize = '3.5rem';
+    el.style.fontWeight = '900';
+    el.style.fontStyle = 'italic';
+    el.style.textShadow = `0 0 20px ${color || '#fff'}, 0 5px 15px rgba(0,0,0,0.8)`;
+    el.style.whiteSpace = 'nowrap';
+    el.style.zIndex = '100';
+    el.style.pointerEvents = 'none';
+    b.popupLayer.appendChild(el);
+
+    gsap.fromTo(el, { scale: 3, opacity: 0, yPercent: -50, xPercent: -50, rotationZ: (Math.random()-0.5)*15 }, 
+      { scale: 1, opacity: 1, rotationZ: 0, duration: 0.6, ease: "back.out(1.7)",
+        onComplete: () => {
+          gsap.to(el, { opacity: 0, scale: 1.5, y: -100, duration: 0.4, ease: "power2.in", onComplete: () => el.remove() });
+        }
+      });
+  }
+
   function spawnPopup(b, text, cls) {
     if (!settings.display.popups) return;
     if (!b.popupLayer) return;
     const el = document.createElement('div');
     el.className = 'popup ' + cls;
     el.textContent = text;
-    // Combo escalation: pop grows and shifts color with streak length
     if (cls === 'popup-combo' && b.combo > 2) {
       const size = Math.min(48, 22 + b.combo * 2.5);
       el.style.fontSize = `${size}px`;
@@ -1699,7 +1804,13 @@
       el.style.textShadow = `0 0 ${16 + b.combo * 2}px currentColor, 0 2px 4px rgba(0,0,0,0.7)`;
     }
     b.popupLayer.appendChild(el);
-    setTimeout(() => el.remove(), 1500);
+    if (window.gsap) {
+      gsap.fromTo(el, { scale: 2, opacity: 0, y: 20 }, { scale: 1, opacity: 1, y: 0, duration: 0.5, ease: "back.out(2)", onComplete: () => {
+        gsap.to(el, { opacity: 0, y: -40, duration: 0.4, delay: 0.6, onComplete: () => el.remove() });
+      }});
+    } else {
+      setTimeout(() => el.remove(), 1500);
+    }
   }
   function bumpDigi(el) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   function triggerFlash(kind) {
@@ -1777,6 +1888,16 @@
 
   function drawParticles2D(b) {
     if (!settings.display.particles) return;
+    for (const sw of b.shockwaves) {
+      b.ctx.save();
+      b.ctx.globalAlpha = sw.alpha;
+      b.ctx.strokeStyle = '#ffffff';
+      b.ctx.lineWidth = sw.thickness;
+      b.ctx.beginPath();
+      b.ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+      b.ctx.stroke();
+      b.ctx.restore();
+    }
     for (const p of b.particles) {
       const a = Math.max(0, p.life / p.maxLife);
       if (p.ring) {
@@ -1881,6 +2002,18 @@
         else if (rotation === 3) p2x--;
         if (p2y >= 0) drawPuyo(b.ctx, p2x, p2y, CELL, p2, b.grid);
       }
+
+      b.trails.forEach(t => {
+        b.ctx.save(); b.ctx.globalAlpha = t.alpha;
+        if (t.typeMode === 'puyo') {
+          if (t.y >= 0) drawPuyo(b.ctx, t.x, t.y, CELL, t.p1, b.grid);
+          let p2x = t.x, p2y = t.y;
+          if (t.rotation === 0) p2y--; else if (t.rotation === 1) p2x++; else if (t.rotation === 2) p2y++; else if (t.rotation === 3) p2x--;
+          if (p2y >= 0) drawPuyo(b.ctx, p2x, p2y, CELL, t.p2, b.grid);
+        }
+        b.ctx.restore();
+      });
+
       drawParticles2D(b);
       return;
     }
@@ -1895,6 +2028,20 @@
         else drawBlock(b.ctx, c, r, CELL, t);
       }
     }
+
+    b.trails.forEach(t => {
+      b.ctx.save(); b.ctx.globalAlpha = t.alpha;
+      if (t.typeMode === 'tetris') {
+        const shapes = ROTATIONS[t.type];
+        if (shapes && shapes[t.rotation]) {
+          shapes[t.rotation].forEach((row, r) => row.forEach((v, c) => {
+            if (v && t.y + r >= 0) drawBlock(b.ctx, t.x + c, t.y + r, CELL, t.type);
+          }));
+        }
+      }
+      b.ctx.restore();
+    });
+
     if (b.current && !b.gameOver && !b.flashing) {
       if (b.isCPU && b.cpuTarget && settings.cpu.showTarget) {
         b.cpuTarget.matrix.forEach((row, r) => row.forEach((v, c) => {
@@ -2589,8 +2736,15 @@
       for (let i = 0; i < pad.buttons.length; i++) {
         const btn = pad.buttons[i];
         const pressed = !!(btn && (btn.pressed || btn.value > 0.5));
-        if (pressed && !padCapturePrev[i]) { assignPadBinding(padRebinding, i); for (const k in padCapturePrev) delete padCapturePrev[k]; return; }
-        padCapturePrev[i] = pressed;
+        if (pressed && !padCapturePrev['btn'+i]) { assignPadBinding(padRebinding, i); for (const k in padCapturePrev) delete padCapturePrev[k]; return; }
+        padCapturePrev['btn'+i] = pressed;
+      }
+      for (let i = 0; i < pad.axes.length; i++) {
+        const val = pad.axes[i];
+        if (val < -0.5 && !padCapturePrev['axis'+i+'-']) { assignPadBinding(padRebinding, 'axis'+i+'-'); for (const k in padCapturePrev) delete padCapturePrev[k]; return; }
+        if (val > 0.5 && !padCapturePrev['axis'+i+'+']) { assignPadBinding(padRebinding, 'axis'+i+'+'); for (const k in padCapturePrev) delete padCapturePrev[k]; return; }
+        padCapturePrev['axis'+i+'-'] = (val < -0.5);
+        padCapturePrev['axis'+i+'+'] = (val > 0.5);
       }
       return;
     }
@@ -2598,8 +2752,15 @@
     const bindings = settings.gamepadBindings;
     for (const action in bindings) {
       const idx = bindings[action]; if (idx == null) continue;
-      const btn = pad.buttons[idx];
-      if (btn && (btn.pressed || btn.value > 0.5)) active[action] = true;
+      if (typeof idx === 'string' && idx.startsWith('axis')) {
+        const axisIndex = parseInt(idx.charAt(4), 10);
+        const dir = idx.charAt(5);
+        const val = pad.axes[axisIndex] || 0;
+        if ((dir === '-' && val < -0.5) || (dir === '+' && val > 0.5)) active[action] = true;
+      } else {
+        const btn = pad.buttons[idx];
+        if (btn && (btn.pressed || btn.value > 0.5)) active[action] = true;
+      }
     }
     const T = 0.5;
     const stickX = pad.axes[0] || 0, stickY = pad.axes[1] || 0;
@@ -2629,7 +2790,7 @@
       return;
     }
     if (modalOpen) { if (action === 'pause' || action === 'rotateCCW') closeModal(); return; }
-    if (!padHeld[action] && (action === 'moveLeft' || action === 'moveRight')) padHeld[action] = { since: now, lastTrigger: now };
+    if (!padHeld[action]) padHeld[action] = { since: now, lastTrigger: now };
     triggerAction(action);
   }
 
@@ -2712,14 +2873,8 @@
 
     p2pPeer.on('open', (id) => {
       p2pIsHost = true;
-      $('hostPeerIdDisplay').textContent = id;
-      statusEl.textContent = '対戦相手の接続を待っています...';
+      statusEl.textContent = 'ルームを作成するか、公開ルームに参加してください。';
       initMQTT(id);
-      
-      const publishCheck = $('publishRoomCheck');
-      if (publishCheck && publishCheck.checked) {
-        publishMyRoom(id, $('publishRoomNameInput').value);
-      }
     });
 
     p2pPeer.on('error', (err) => {
@@ -2766,19 +2921,18 @@
     });
   }
 
-  // Client connection initiator
-  $('onlineConnectBtn').addEventListener('click', () => {
-    const id = $('joinPeerIdInput').value.trim();
-    if (!id) return;
-    p2pIsHost = false;
-    const statusEl = $('onlineStatus');
-    statusEl.textContent = 'ホストに接続中...';
-    
-    if (p2pPeer) {
-      const conn = p2pPeer.connect(id);
-      setupP2PConnection(conn);
-    }
-  });
+  // Create Public Room Button
+  const createPublicRoomBtn = $('createPublicRoomBtn');
+  if (createPublicRoomBtn) {
+    createPublicRoomBtn.addEventListener('click', () => {
+      if (p2pPeer && p2pPeer.id) {
+        publishMyRoom(p2pPeer.id, $('publishRoomNameInput').value || 'Guest Room');
+        const statusEl = $('onlineStatus');
+        statusEl.textContent = '公開ルームを作成しました。対戦相手を待っています...';
+        statusEl.style.color = '#22e6ff';
+      }
+    });
+  }
 
   $('onlineBackBtn').addEventListener('click', () => {
     if (p2pPeer) {
@@ -3405,33 +3559,7 @@
     refreshFriendsList();
   };
 
-  $('addFriendBtn').addEventListener('click', () => {
-    const id = $('friendIdInput').value.trim();
-    if (isSafePeerId(id) && id !== myPeerId && !friends.includes(id)) {
-      friends.push(id);
-      localStorage.setItem('puyotetris_friends', JSON.stringify(friends));
-      $('friendIdInput').value = '';
-      refreshFriendsList();
-      if (mqttClient && mqttClient.connected) {
-        mqttClient.publish(`puyotetris/friend/${id}`, JSON.stringify({ type: 'online', from: myPeerId }));
-      }
-    }
-  });
-
-  // Lobby Tabs handler
-  document.querySelectorAll('.lobby-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.lobby-tab-btn').forEach(b => {
-        b.classList.remove('active');
-        b.style.color = '#aaa';
-      });
-      btn.classList.add('active');
-      btn.style.color = '#fff';
-      
-      document.querySelectorAll('.lobby-tab-content').forEach(c => c.classList.add('hidden'));
-      $(`${btn.dataset.tab}TabContent`).classList.remove('hidden');
-    });
-  });
+  // Friend / Tab logic removed
 
   // ---------- MODE SELECT ----------
   const modeCards = document.querySelectorAll('.mode-card');
@@ -3674,7 +3802,12 @@
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     for (const p of pads) {
       if (p && p.connected) {
-        for (let i = 0; i < p.buttons.length; i++) { const bt = p.buttons[i]; padCapturePrev[i] = !!(bt && (bt.pressed || bt.value > 0.5)); }
+        for (let i = 0; i < p.buttons.length; i++) { const bt = p.buttons[i]; padCapturePrev['btn'+i] = !!(bt && (bt.pressed || bt.value > 0.5)); }
+        for (let i = 0; i < p.axes.length; i++) { 
+          const val = p.axes[i]; 
+          padCapturePrev['axis'+i+'-'] = (val < -0.5); 
+          padCapturePrev['axis'+i+'+'] = (val > 0.5); 
+        }
         break;
       }
     }

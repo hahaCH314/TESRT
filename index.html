@@ -182,64 +182,21 @@
         <div class="mode-tagline"><span>◆</span><span>ONLINE P2P MULTIPLAYER</span><span>◆</span></div>
         <h1 class="mode-title" data-text="ONLINE VS">ONLINE VS</h1>
         
-        <!-- Tab buttons -->
-        <div class="lobby-tabs" style="display: flex; gap: 10px; width: 100%; margin-bottom: 20px; border-bottom: 1.5px solid rgba(255,255,255,0.15); padding-bottom: 10px;">
-          <button class="lobby-tab-btn active" data-tab="lobby" style="flex: 1; padding: 10px; background: none; border: none; color: #fff; font-weight: bold; font-size: 0.95rem; cursor: pointer;">LOBBY</button>
-          <button class="lobby-tab-btn" data-tab="rooms" style="flex: 1; padding: 10px; background: none; border: none; color: #aaa; font-weight: bold; font-size: 0.95rem; cursor: pointer;">PUBLIC ROOMS</button>
-          <button class="lobby-tab-btn" data-tab="friends" style="flex: 1; padding: 10px; background: none; border: none; color: #aaa; font-weight: bold; font-size: 0.95rem; cursor: pointer;">FRIENDS</button>
-        </div>
-
-        <!-- Lobby Tab Content -->
-        <div id="lobbyTabContent" class="lobby-tab-content">
+        <!-- Public Rooms Only -->
+        <div id="roomsTabContent" class="lobby-tab-content" style="width: 100%;">
           <div class="type-selectors" style="flex-direction: column; gap: 20px;">
             <div class="type-selector-box" style="width: 100%;">
-              <h2>1. CREATE ROOM (HOST)</h2>
-              <p style="font-size: 0.9rem; color: #a5f3fc; margin-bottom: 8px;">あなたの接続用ID（対戦相手に教えてください）:</p>
-              <div id="hostPeerIdDisplay" style="background: rgba(0,0,0,0.5); border: 2px solid #22e6ff; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 1.3rem; letter-spacing: 2px; text-align: center; color: #ff3ea5; font-weight: bold; text-shadow: 0 0 8px currentColor; margin-bottom: 12px;">
-                IDを取得中...
-              </div>
-              <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,62,165,0.1); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,62,165,0.3);">
-                <input type="checkbox" id="publishRoomCheck" style="width:16px; height:16px; cursor:pointer;" />
-                <label for="publishRoomCheck" style="font-size:0.85rem; color:#fff; cursor:pointer;">公開ルーム一覧に登録する</label>
-                <input type="text" id="publishRoomNameInput" placeholder="ルーム名" style="flex:1; padding:4px 8px; background:rgba(0,0,0,0.4); border:1px solid #ff3ea5; border-radius:4px; color:#fff; font-size:0.85rem;" />
-              </div>
-            </div>
-
-            <div class="type-selector-box" style="width: 100%;">
-              <h2>2. JOIN ROOM (GUEST)</h2>
+              <h2>1. CREATE PUBLIC ROOM</h2>
               <div style="display: flex; gap: 10px; width: 100%;">
-                <input type="text" id="joinPeerIdInput" placeholder="相手のホストIDを入力" style="flex: 1; padding: 12px; background: rgba(0,0,0,0.4); border: 1.5px solid #ff3ea5; border-radius: 6px; color: #fff; font-family: monospace; font-size: 1.1rem; text-align: center;" />
-                <button id="onlineConnectBtn" class="type-start-btn" style="padding: 0 20px; font-size: 1rem; margin-top:0;">CONNECT</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rooms Tab Content -->
-        <div id="roomsTabContent" class="lobby-tab-content hidden" style="width: 100%;">
-          <div class="type-selector-box" style="width: 100%;">
-            <h2>ACTIVE PUBLIC ROOMS</h2>
-            <div id="publicRoomsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 5px; min-height: 100px;">
-              <div style="text-align: center; color: #aaa; padding: 20px 0;">公開ルームが見つかりません。</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Friends Tab Content -->
-        <div id="friendsTabContent" class="lobby-tab-content hidden" style="width: 100%;">
-          <div class="type-selectors" style="flex-direction: column; gap: 20px;">
-            <div class="type-selector-box" style="width: 100%;">
-              <h2>ADD FRIEND</h2>
-              <div style="display: flex; gap: 10px; width: 100%;">
-                <input type="text" id="friendIdInput" placeholder="フレンドの接続IDを入力" style="flex: 1; padding: 10px; background: rgba(0,0,0,0.4); border: 1.5px solid #ff3ea5; border-radius: 6px; color: #fff; font-family: monospace; font-size: 0.95rem; text-align: center;" />
-                <button id="addFriendBtn" class="type-start-btn" style="padding: 0 20px; font-size: 0.9rem; margin-top:0;">ADD</button>
+                <input type="text" id="publishRoomNameInput" placeholder="ルーム名を入力" style="flex: 1; padding: 12px; background: rgba(0,0,0,0.4); border: 1.5px solid #ff3ea5; border-radius: 6px; color: #fff; font-size: 1.1rem; text-align: center;" />
+                <button id="createPublicRoomBtn" class="type-start-btn" style="padding: 0 20px; font-size: 1rem; margin-top:0;">CREATE</button>
               </div>
             </div>
 
             <div class="type-selector-box" style="width: 100%;">
-              <h2>FRIEND LIST</h2>
-              <div id="friendsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding: 5px; min-height: 80px;">
-                <div style="text-align: center; color: #aaa; padding: 15px 0;">フレンドが登録されていません。</div>
+              <h2>2. JOIN PUBLIC ROOM</h2>
+              <div id="publicRoomsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 5px; min-height: 100px;">
+                <div style="text-align: center; color: #aaa; padding: 20px 0;">公開ルームが見つかりません。</div>
               </div>
             </div>
           </div>
