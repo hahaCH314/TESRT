@@ -3873,7 +3873,7 @@
       gameFrame.style.transform = '';
       return;
     }
-    const isMobile = window.matchMedia('(max-width: 1024px) and (pointer: coarse)').matches;
+    const isMobile = window.innerWidth <= 1024 && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
     if (!isMobile) {
       gameFrame.style.transform = '';
       return;
