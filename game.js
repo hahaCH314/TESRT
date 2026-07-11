@@ -2164,6 +2164,22 @@
   }
 
   function drawBoard(b) {
+    // Check for pinch state (blocks in top 4 rows)
+    let isPinch = false;
+    if (b.grid) {
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (b.grid[r][c]) { isPinch = true; break; }
+        }
+        if (isPinch) break;
+      }
+    }
+    const wrap = b.canvas.closest('.board-wrap');
+    if (wrap) {
+      if (isPinch && !b.gameOver) wrap.classList.add('pinch-danger');
+      else wrap.classList.remove('pinch-danger');
+    }
+
     if (!settings.display.renderMode) {
       drawBoard2D(b);
       return;
@@ -3469,27 +3485,19 @@
     if (!list) return;
     list.innerHTML = '';
     if (publicRooms.length === 0) {
-      list.innerHTML = '<div style="text-align: center; color: #aaa; padding: 20px 0;">公開ルームが見つかりません。</div>';
+      list.innerHTML = '<div class="online-empty-state">公開ルームが見つかりません</div>';
       return;
     }
     publicRooms.forEach(room => {
       const div = document.createElement('div');
-      div.style.display = 'flex';
-      div.style.justifyContent = 'space-between';
-      div.style.alignItems = 'center';
-      div.style.padding = '8px 12px';
-      div.style.background = 'rgba(255,255,255,0.06)';
-      div.style.borderRadius = '8px';
-      div.style.border = '1px solid rgba(255,255,255,0.08)';
+      div.className = 'public-room-item';
 
       const nameSpan = document.createElement('span');
-      nameSpan.style.fontWeight = 'bold';
-      nameSpan.style.color = '#fff';
-      nameSpan.textContent = room.name; // textContent: remote name can never inject markup
+      nameSpan.className = 'public-room-name';
+      nameSpan.textContent = room.name || '名無しルーム'; 
 
       const joinBtn = document.createElement('button');
-      joinBtn.className = 'type-start-btn';
-      joinBtn.style.cssText = 'margin:0; padding:6px 12px; font-size:0.8rem; border-radius:6px;';
+      joinBtn.className = 'public-room-join-btn';
       joinBtn.textContent = 'JOIN';
       joinBtn.addEventListener('click', () => window.connectToRoom(room.id));
 
@@ -3873,6 +3881,14 @@
   bgmRange.addEventListener('input', () => { settings.audio.bgmVolume = +bgmRange.value; bgmVal.textContent = `${settings.audio.bgmVolume}%`; window.audio.setBgmVolume(settings.audio.bgmVolume/100); saveSettings(); });
   seRange.addEventListener('input', () => { settings.audio.seVolume = +seRange.value; seVal.textContent = `${settings.audio.seVolume}%`; window.audio.setSeVolume(settings.audio.seVolume/100); saveSettings(); });
   
+  const bgmTrackSelect = $('bgmTrackSelect');
+  if (bgmTrackSelect) {
+    bgmTrackSelect.value = localStorage.getItem('puyotetris_bgmTrack') || 'phonk';
+    bgmTrackSelect.addEventListener('change', () => {
+      window.audio.setBgmTrack(bgmTrackSelect.value);
+    });
+  }
+
   if (diffButtons) {
     diffButtons.querySelectorAll('.diff-btn').forEach(btn => {
       btn.addEventListener('click', () => {

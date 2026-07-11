@@ -182,23 +182,33 @@
         <div class="mode-tagline"><span>◆</span><span>ONLINE P2P MULTIPLAYER</span><span>◆</span></div>
         <h1 class="mode-title" data-text="ONLINE VS">ONLINE VS</h1>
         
-        <!-- Public Rooms Only -->
-        <div id="roomsTabContent" class="lobby-tab-content" style="width: 100%;">
-          <div class="type-selectors" style="flex-direction: column; gap: 20px;">
-            <div class="type-selector-box" style="width: 100%;">
-              <h2>1. CREATE PUBLIC ROOM</h2>
-              <div style="display: flex; gap: 10px; width: 100%;">
-                <input type="text" id="publishRoomNameInput" placeholder="ルーム名を入力" style="flex: 1; padding: 12px; background: rgba(0,0,0,0.4); border: 1.5px solid #ff3ea5; border-radius: 6px; color: #fff; font-size: 1.1rem; text-align: center;" />
-                <button id="createPublicRoomBtn" class="type-start-btn" style="padding: 0 20px; font-size: 1rem; margin-top:0;">CREATE</button>
+        <!-- Public Rooms Only: Modern Layout -->
+        <div id="roomsTabContent" style="width: 100%; animation: fadeIn 0.4s ease-out;">
+          <div class="online-split-layout">
+            
+            <!-- CREATE ROOM CARD -->
+            <div class="online-card create-card">
+              <div class="online-card-icon">🏠</div>
+              <h2>ルームを作る</h2>
+              <p>あなたがホストになり、対戦相手を募集します</p>
+              
+              <div class="online-input-group">
+                <input type="text" id="publishRoomNameInput" placeholder="ルーム名を入力" />
+                <button id="createPublicRoomBtn" class="online-action-btn btn-cyan">CREATE</button>
               </div>
             </div>
 
-            <div class="type-selector-box" style="width: 100%;">
-              <h2>2. JOIN PUBLIC ROOM</h2>
-              <div id="publicRoomsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 5px; min-height: 100px;">
-                <div style="text-align: center; color: #aaa; padding: 20px 0;">公開ルームが見つかりません。</div>
+            <!-- JOIN ROOM CARD -->
+            <div class="online-card join-card">
+              <div class="online-card-icon">🔍</div>
+              <h2>ルームに参加する</h2>
+              <p>現在募集中のルームを選んで対戦します</p>
+              
+              <div id="publicRoomsList" class="online-room-list">
+                <div class="online-empty-state">公開ルームが見つかりません</div>
               </div>
             </div>
+
           </div>
         </div>
 
@@ -464,8 +474,16 @@
 
           <section class="settings-section">
             <h3 class="section-title"><span class="section-bar"></span>AUDIO</h3>
+            <div class="setting-row select-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <div class="setting-label"><span class="setting-name">BGM TRACK</span><span class="setting-hint">再生する曲</span></div>
+              <select id="bgmTrackSelect" style="background:#4a0a52; border:1px solid #ff3ea5; color:#fff; padding:6px; border-radius:4px; font-family:inherit; min-width:140px;">
+                <option value="random">RANDOM</option>
+                <option value="phonk">TETRIS PHONK</option>
+                <option value="tetris99">Tetris 99 - Main Theme</option>
+              </select>
+            </div>
             <div class="setting-row toggle-row">
-              <div class="setting-label"><span class="setting-name">BGM</span><span class="setting-hint">背景音楽（コロブチカ）</span></div>
+              <div class="setting-label"><span class="setting-name">BGM</span><span class="setting-hint">背景音楽のON/OFF</span></div>
               <button class="toggle" data-toggle-audio="bgm" aria-pressed="true">
                 <span class="toggle-knob"></span><span class="toggle-on">ON</span><span class="toggle-off">OFF</span>
               </button>

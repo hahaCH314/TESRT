@@ -30,15 +30,31 @@
       this.bgmMaxTempo = 205;   // BPM at pinch = 1.0
       this.pinchIntensity = 0;  // 0..1 — game.js sets this each frame
       
+      // BGM Tracks
+      this.bgmTracks = {
+        'phonk': 'TETRIS PHONK - smaher.mp3',
+        'tetris99': 'Tetris 99 - Main Theme - SoundHub.mp3'
+      };
+      this.currentTrackId = localStorage.getItem('puyotetris_bgmTrack') || 'phonk';
+
       // Preload user's custom BGM
       this.bgmAudio = new Audio();
-      this.bgmAudio.src = 'TETRIS PHONK - smaher.mp3';
+      this.bgmAudio.src = this._getTrackUrl(this.currentTrackId);
       this.bgmAudio.loop = true;
       this.bgmLoaded = false;
       this.bgmAudio.addEventListener('canplaythrough', () => {
         this.bgmLoaded = true;
       });
       this.bgmAudio.load();
+    }
+
+    _getTrackUrl(trackId) {
+      if (trackId === 'random') {
+        const keys = Object.keys(this.bgmTracks);
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+        return this.bgmTracks[randomKey];
+      }
+      return this.bgmTracks[trackId] || this.bgmTracks['phonk'];
     }
 
     setPinchIntensity(v) {
@@ -97,6 +113,21 @@
       this.bgmGain.gain.setTargetAtTime(b ? this.bgmVolume : 0, t, 0.02);
       if (!b) this.stopBGM();
       else if (!this.bgmActive) this.startBGM();
+    }
+    
+    setBgmTrack(trackId) {
+      if (trackId !== 'random' && !this.bgmTracks[trackId]) return;
+      this.currentTrackId = trackId;
+      localStorage.setItem('puyotetris_bgmTrack', trackId);
+      if (this.bgmAudio) {
+        const wasPlaying = this.bgmActive && !this.bgmAudio.paused;
+        this.bgmAudio.src = this._getTrackUrl(trackId);
+        this.bgmAudio.load();
+        this.bgmLoaded = false;
+        if (wasPlaying && this.bgmEnabled) {
+          this.bgmAudio.play().catch(() => {});
+        }
+      }
     }
 
     // -------- SE --------
@@ -291,6 +322,15 @@
       if (this.bgmActive) return;
       this.bgmActive = true;
       
+      if (this.currentTrackId === 'random' && this.bgmAudio) {
+        const url = this._getTrackUrl('random');
+        if (!this.bgmAudio.src.endsWith(url)) {
+          this.bgmAudio.src = url;
+          this.bgmAudio.load();
+          this.bgmLoaded = false;
+        }
+      }
+
       if (this.bgmLoaded && this.bgmAudio) {
         this.bgmAudio.play().catch(() => {});
       } else if (this.bgmAudio) {
