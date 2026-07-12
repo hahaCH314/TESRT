@@ -928,9 +928,9 @@
 
     b.scene = new THREE.Scene();
     
-    b.renderer = new THREE.WebGLRenderer({ canvas: c3d, antialias: false, alpha: true, powerPreference: "high-performance" });
+    b.renderer = new THREE.WebGLRenderer({ canvas: c3d, antialias: true, alpha: true, powerPreference: "high-performance" });
     b.renderer.setSize(c3d.width, c3d.height);
-    b.renderer.setPixelRatio(1); // Force 1x pixel ratio for performance
+    b.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     b.renderer.shadowMap.enabled = false; // Disable shadows for performance
 
     b.camera = new THREE.PerspectiveCamera(45, c3d.width / c3d.height, 0.1, 1000);
@@ -2654,6 +2654,7 @@
     normal: { speed: 180, noise: 0.3, missChance: 0.05 },
     hard:   { speed: 60,  noise: 0.0, missChance: 0    },
     expert: { speed: 15,  noise: 0.0, missChance: 0    },
+    custom: { speed: 80,  noise: 0.0, missChance: 0    },
   };
   function cpuPreset() { return CPU_PRESETS[settings.cpu.difficulty] || CPU_PRESETS.normal; }
 
@@ -2708,6 +2709,56 @@
     }
     return candidates[0];
   }
+
+  async function fetchAiMove(b) {
+    if (!window.aiApiKey) throw new Error("No API key");
+    const gridStr = b.grid.map(row => row.map(c => c ? '1' : '0').join('')).join('\\n');
+    const pieceType = b.current.type;
+    const nextPieces = b.next ? b.next.join(',') : '';
+    const prompt = `You are an AI playing Tetris.
+Given the current board state (0 = empty, 1 = filled block), the current piece type, and the next pieces queue, output the BEST placement for the current piece.
+Board (20 rows, 10 columns):
+${gridStr}
+
+Current piece: ${pieceType}
+Next pieces: ${nextPieces}
+
+Calculate the best x coordinate (0 to 9, where 0 is leftmost) and rotation (0 to 3) for the current piece.
+Provide the response as a JSON object with properties 'x' and 'rotation'. Example: {"x": 4, "rotation": 0}.
+Do not wrap it in markdown. Just the JSON object.`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${window.aiApiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+    
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const data = await res.json();
+    let text = data.candidates[0].content.parts[0].text;
+    text = text.replace(/^```json/, '').replace(/```$/, '').trim();
+    const result = JSON.parse(text);
+    
+    const targetX = typeof result.x === 'number' ? result.x : parseInt(result.x) || 4;
+    const targetRot = typeof result.rotation === 'number' ? result.rotation : parseInt(result.rotation) || 0;
+    
+    // Simulate drop to find exact Y for rendering target block
+    let y = -3;
+    const matrix = ROTATIONS[pieceType] ? ROTATIONS[pieceType][targetRot] : b.current.matrix;
+    const testPiece = { type: pieceType, matrix: matrix, x: targetX, y: y };
+    if (!collides(testPiece, b.grid)) {
+      while (!collides({ ...testPiece, y: y + 1 }, b.grid)) { y++; if (y >= 20) break; }
+    }
+    
+    return {
+      x: targetX,
+      y: y,
+      rotation: targetRot
+    };
+  }
   function cpuStep(b, dt) {
     if (!b.current || b.gameOver || paused || b.flashing) return;
 
@@ -2716,6 +2767,22 @@
     if (b.cpuActionTimer < preset.speed) return;
     b.cpuActionTimer = 0;
     if (!b.cpuTarget) {
+      if (settings.cpu.difficulty === 'custom' && window.aiApiKey && b.type !== 'puyo') {
+        if (!b.isAiFetching) {
+          b.isAiFetching = true;
+          fetchAiMove(b).then(target => {
+            b.cpuTarget = target;
+            b.isAiFetching = false;
+          }).catch(err => {
+            console.error("AI fetch failed, falling back to expert:", err);
+            const nextPiece = (b.next && b.next.length > 0) ? b.next[0] : null;
+            b.cpuTarget = findBestMove(b.current, b.grid, 0, 0, nextPiece);
+            b.isAiFetching = false;
+          });
+        }
+        return; // wait for fetch
+      }
+
       if (b.type === 'puyo') {
         b.cpuTarget = findBestMovePuyo(b.current, b.grid, preset.noise, preset.missChance);
       } else {
@@ -4009,6 +4076,8 @@
       diffButtons.querySelectorAll('.diff-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.diff === cur);
       });
+      const aiApiKeyRow = $('aiApiKeyRow');
+      if (aiApiKeyRow) aiApiKeyRow.style.display = cur === 'custom' ? 'flex' : 'none';
     }
   }
   function syncTogglesFromSettings() {
@@ -4050,11 +4119,22 @@
       btn.addEventListener('click', () => {
         settings.cpu.difficulty = btn.dataset.diff;
         diffButtons.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+        const aiApiKeyRow = $('aiApiKeyRow');
+        if (aiApiKeyRow) aiApiKeyRow.style.display = btn.dataset.diff === 'custom' ? 'flex' : 'none';
         saveSettings();
         // reset CPU target so next tick uses the new noise/miss settings immediately
         if (cpuBoard) { cpuBoard.cpuTarget = null; cpuBoard.cpuActionTimer = 0; }
       });
     });
+    const aiApiKeyInput = $('aiApiKeyInput');
+    if (aiApiKeyInput) {
+      aiApiKeyInput.value = localStorage.getItem('tetris_ai_api_key') || '';
+      window.aiApiKey = aiApiKeyInput.value;
+      aiApiKeyInput.addEventListener('input', () => {
+        window.aiApiKey = aiApiKeyInput.value;
+        localStorage.setItem('tetris_ai_api_key', window.aiApiKey);
+      });
+    }
   }
 
   modal.querySelectorAll('[data-toggle-display]').forEach(t => t.addEventListener('click', () => {

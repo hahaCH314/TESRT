@@ -460,7 +460,12 @@
                 <button class="diff-btn" data-diff="normal">NORMAL</button>
                 <button class="diff-btn" data-diff="hard">HARD</button>
                 <button class="diff-btn" data-diff="expert">EXPERT</button>
+                <button class="diff-btn" data-diff="custom">CUSTOM</button>
               </div>
+            </div>
+            <div class="setting-row" id="aiApiKeyRow" style="display:none; flex-direction:column; gap:4px; margin-bottom:10px;">
+              <div class="setting-label"><span class="setting-name">GEMINI API KEY</span><span class="setting-hint">AIテトラー用 (Custom難易度でのみ有効)</span></div>
+              <input type="password" id="aiApiKeyInput" placeholder="AI API Keyを入力" style="background:#1a0228; border:1px solid rgba(140, 240, 255, 0.35); color:var(--cyan-soft); padding:8px; border-radius:4px; font-family:monospace; width:100%;">
             </div>
             <div class="setting-row toggle-row">
               <div class="setting-label"><span class="setting-name">Auto Restart</span><span class="setting-hint">CPUが詰んだら自動リスタート</span></div>

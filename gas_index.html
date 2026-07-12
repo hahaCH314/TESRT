@@ -1036,6 +1036,7 @@ body.no-glow .panel { box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1p
 .diff-btn[data-diff="normal"].active { background: linear-gradient(180deg, #22d3ee, #0e7490); color: #fff; border-color: #a5f3fc; box-shadow: 0 0 12px rgba(34,220,255,0.6); }
 .diff-btn[data-diff="hard"].active   { background: linear-gradient(180deg, #f97316, #9a3412); color: #fff; border-color: #fdba74; box-shadow: 0 0 12px rgba(249,115,22,0.6); }
 .diff-btn[data-diff="expert"].active { background: linear-gradient(180deg, #ef4444, #7f1d1d); color: #fff; border-color: #fca5a5; box-shadow: 0 0 14px rgba(239,68,68,0.7); }
+.diff-btn[data-diff="custom"].active { background: linear-gradient(180deg, #a855f7, #4c1d95); color: #fff; border-color: #d8b4fe; box-shadow: 0 0 14px rgba(168,85,247,0.7); }
 .setting-label { display: flex; flex-direction: column; gap: 2px; }
 .setting-name { font-size: 13px; color: #fff; font-weight: 700; letter-spacing: 1px; }
 .setting-hint { font-size: 10px; color: #a98ac8; letter-spacing: 0.5px; }
@@ -2118,7 +2119,12 @@ input[type="range"].range::-moz-range-thumb {
                 <button class="diff-btn" data-diff="normal">NORMAL</button>
                 <button class="diff-btn" data-diff="hard">HARD</button>
                 <button class="diff-btn" data-diff="expert">EXPERT</button>
+                <button class="diff-btn" data-diff="custom">CUSTOM</button>
               </div>
+            </div>
+            <div class="setting-row" id="aiApiKeyRow" style="display:none; flex-direction:column; gap:4px; margin-bottom:10px;">
+              <div class="setting-label"><span class="setting-name">GEMINI API KEY</span><span class="setting-hint">AIテトラー用 (Custom難易度でのみ有効)</span></div>
+              <input type="password" id="aiApiKeyInput" placeholder="AI API Keyを入力" style="background:#1a0228; border:1px solid rgba(140, 240, 255, 0.35); color:var(--cyan-soft); padding:8px; border-radius:4px; font-family:monospace; width:100%;">
             </div>
             <div class="setting-row toggle-row">
               <div class="setting-label"><span class="setting-name">Auto Restart</span><span class="setting-hint">CPUが詰んだら自動リスタート</span></div>
@@ -2659,7 +2665,7 @@ const gasStorage = {
 })();
 
 </script>
-<script>
+  <script>
 (() => {
   const COLS = 10;
   const ROWS = 20;
@@ -3590,9 +3596,9 @@ const gasStorage = {
 
     b.scene = new THREE.Scene();
     
-    b.renderer = new THREE.WebGLRenderer({ canvas: c3d, antialias: false, alpha: true, powerPreference: "high-performance" });
+    b.renderer = new THREE.WebGLRenderer({ canvas: c3d, antialias: true, alpha: true, powerPreference: "high-performance" });
     b.renderer.setSize(c3d.width, c3d.height);
-    b.renderer.setPixelRatio(1); // Force 1x pixel ratio for performance
+    b.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     b.renderer.shadowMap.enabled = false; // Disable shadows for performance
 
     b.camera = new THREE.PerspectiveCamera(45, c3d.width / c3d.height, 0.1, 1000);
@@ -5316,6 +5322,7 @@ const gasStorage = {
     normal: { speed: 180, noise: 0.3, missChance: 0.05 },
     hard:   { speed: 60,  noise: 0.0, missChance: 0    },
     expert: { speed: 15,  noise: 0.0, missChance: 0    },
+    custom: { speed: 80,  noise: 0.0, missChance: 0    },
   };
   function cpuPreset() { return CPU_PRESETS[settings.cpu.difficulty] || CPU_PRESETS.normal; }
 
@@ -5370,6 +5377,56 @@ const gasStorage = {
     }
     return candidates[0];
   }
+
+  async function fetchAiMove(b) {
+    if (!window.aiApiKey) throw new Error("No API key");
+    const gridStr = b.grid.map(row => row.map(c => c ? '1' : '0').join('')).join('\\n');
+    const pieceType = b.current.type;
+    const nextPieces = b.next ? b.next.join(',') : '';
+    const prompt = `You are an AI playing Tetris.
+Given the current board state (0 = empty, 1 = filled block), the current piece type, and the next pieces queue, output the BEST placement for the current piece.
+Board (20 rows, 10 columns):
+${gridStr}
+
+Current piece: ${pieceType}
+Next pieces: ${nextPieces}
+
+Calculate the best x coordinate (0 to 9, where 0 is leftmost) and rotation (0 to 3) for the current piece.
+Provide the response as a JSON object with properties 'x' and 'rotation'. Example: {"x": 4, "rotation": 0}.
+Do not wrap it in markdown. Just the JSON object.`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${window.aiApiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+    
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const data = await res.json();
+    let text = data.candidates[0].content.parts[0].text;
+    text = text.replace(/^```json/, '').replace(/```$/, '').trim();
+    const result = JSON.parse(text);
+    
+    const targetX = typeof result.x === 'number' ? result.x : parseInt(result.x) || 4;
+    const targetRot = typeof result.rotation === 'number' ? result.rotation : parseInt(result.rotation) || 0;
+    
+    // Simulate drop to find exact Y for rendering target block
+    let y = -3;
+    const matrix = ROTATIONS[pieceType] ? ROTATIONS[pieceType][targetRot] : b.current.matrix;
+    const testPiece = { type: pieceType, matrix: matrix, x: targetX, y: y };
+    if (!collides(testPiece, b.grid)) {
+      while (!collides({ ...testPiece, y: y + 1 }, b.grid)) { y++; if (y >= 20) break; }
+    }
+    
+    return {
+      x: targetX,
+      y: y,
+      rotation: targetRot
+    };
+  }
   function cpuStep(b, dt) {
     if (!b.current || b.gameOver || paused || b.flashing) return;
 
@@ -5378,6 +5435,22 @@ const gasStorage = {
     if (b.cpuActionTimer < preset.speed) return;
     b.cpuActionTimer = 0;
     if (!b.cpuTarget) {
+      if (settings.cpu.difficulty === 'custom' && window.aiApiKey && b.type !== 'puyo') {
+        if (!b.isAiFetching) {
+          b.isAiFetching = true;
+          fetchAiMove(b).then(target => {
+            b.cpuTarget = target;
+            b.isAiFetching = false;
+          }).catch(err => {
+            console.error("AI fetch failed, falling back to expert:", err);
+            const nextPiece = (b.next && b.next.length > 0) ? b.next[0] : null;
+            b.cpuTarget = findBestMove(b.current, b.grid, 0, 0, nextPiece);
+            b.isAiFetching = false;
+          });
+        }
+        return; // wait for fetch
+      }
+
       if (b.type === 'puyo') {
         b.cpuTarget = findBestMovePuyo(b.current, b.grid, preset.noise, preset.missChance);
       } else {
@@ -6671,6 +6744,8 @@ const gasStorage = {
       diffButtons.querySelectorAll('.diff-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.diff === cur);
       });
+      const aiApiKeyRow = $('aiApiKeyRow');
+      if (aiApiKeyRow) aiApiKeyRow.style.display = cur === 'custom' ? 'flex' : 'none';
     }
   }
   function syncTogglesFromSettings() {
@@ -6712,11 +6787,22 @@ const gasStorage = {
       btn.addEventListener('click', () => {
         settings.cpu.difficulty = btn.dataset.diff;
         diffButtons.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+        const aiApiKeyRow = $('aiApiKeyRow');
+        if (aiApiKeyRow) aiApiKeyRow.style.display = btn.dataset.diff === 'custom' ? 'flex' : 'none';
         saveSettings();
         // reset CPU target so next tick uses the new noise/miss settings immediately
         if (cpuBoard) { cpuBoard.cpuTarget = null; cpuBoard.cpuActionTimer = 0; }
       });
     });
+    const aiApiKeyInput = $('aiApiKeyInput');
+    if (aiApiKeyInput) {
+      aiApiKeyInput.value = gasStorage.getItem('tetris_ai_api_key') || '';
+      window.aiApiKey = aiApiKeyInput.value;
+      aiApiKeyInput.addEventListener('input', () => {
+        window.aiApiKey = aiApiKeyInput.value;
+        gasStorage.setItem('tetris_ai_api_key', window.aiApiKey);
+      });
+    }
   }
 
   modal.querySelectorAll('[data-toggle-display]').forEach(t => t.addEventListener('click', () => {
