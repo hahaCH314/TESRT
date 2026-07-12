@@ -517,7 +517,7 @@ body.mode-cpu .board-border {
     inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-#board { display: block; position: relative; z-index: 1; background: #0a0014; }
+#board, #board2 { display: block; position: relative; z-index: 1; background: #0a0014; }
 
 .mode-badge {
   position: absolute;

@@ -32,8 +32,8 @@
       
       // BGM Tracks
       this.bgmTracks = {
-        'phonk': 'TETRIS PHONK - smaher.mp3',
-        'tetris99': 'Tetris 99 - Main Theme - SoundHub.mp3'
+        'phonk': 'https://drive.google.com/uc?export=download&id=1njsGs7dQ4aZ4BHZ3oC4cicj7vH6mVEe2',
+        'tetris99': 'https://drive.google.com/uc?export=download&id=1MR3vs6fkbvRUnkFkEl5g3tQFWROIIWtF'
       };
       this.currentTrackId = localStorage.getItem('puyotetris_bgmTrack') || 'phonk';
 
