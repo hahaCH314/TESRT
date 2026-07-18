@@ -41,7 +41,7 @@ body { background: #050a05; }
   opacity: 0.9;
   transition: opacity 0.35s ease;
 }
-body.no-vignette .stage::after { opacity: 0; }
+body.no-vignette .stage::after { display: none; }
 body.vignette-boost .stage::after {
   animation: vignette-boost 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
@@ -60,7 +60,7 @@ body.vignette-boost .stage::after {
   opacity: 0.4;
   pointer-events: none;
 }
-body.no-glow .bg-glow { opacity: 0; }
+body.no-glow .bg-glow { display: none; }
 
 .bg-stars {
   position: absolute; inset: 0; pointer-events: none;
@@ -81,7 +81,7 @@ body.no-glow .bg-glow { opacity: 0; }
   0% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
   100% { background-position: 200px 400px, 100px 200px, 300px 150px, -200px 300px, 150px -200px, 400px 100px; }
 }
-body.no-stars .bg-stars { opacity: 0; }
+body.no-stars .bg-stars { display: none; }
 
 .mode-bg-canvas {
   position: absolute; inset: 0;

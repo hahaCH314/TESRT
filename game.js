@@ -3,7 +3,7 @@
   const ROWS = 20;
   const CELL = 30;
   const NEXT_QUEUE = 3;
-  const STORAGE_KEY = 'tetris-settings-v3';
+  const STORAGE_KEY = 'tetris-settings-v4';
   const LOCK_RESETS_MAX = 15;
   const LINE_FLASH_MS = 260;
   const INFINITY_CLEAR_ROWS = 8;
@@ -264,7 +264,7 @@
     },
     handling: { das:150, arr:40, sdf:20, gravity:1000, lockDelay:500 },
     audio: { bgm:true, se:true, bgmVolume:32, seVolume:55 },
-    display: { renderMode:false, ghost:true, grid:true, glow:true, stars:true, particles:true, shake:true, popups:true, flash:true, impact:true, vignette:true },
+    display: { renderMode:false, ghost:true, grid:true, glow:false, stars:false, particles:false, shake:false, popups:false, flash:false, impact:false, vignette:false },
     cpu: { difficulty:'normal', autoRestart:true, showTarget:true },
     gamepadBindings: { moveLeft:14, moveRight:15, softDrop:13, hardDrop:5, rotateCW:0, rotateCCW:1, rotate180:3, hold:2, pause:9, reset:8 },
   };
